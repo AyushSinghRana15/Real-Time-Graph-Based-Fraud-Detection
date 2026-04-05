@@ -1,5 +1,6 @@
 import random
 from datetime import datetime, timedelta
+from typing import Optional
 from .models import Alert, TransactionNode
 
 ENTITY_NAMES = [
@@ -14,6 +15,78 @@ INDICATORS = [
     "Rapid fund movement", "Mismatched beneficiary data", "Layering detected",
     "High-risk jurisdiction origin", "Frequency anomaly", "Amount threshold breach"
 ]
+
+class GraphState:
+    def __init__(self):
+        self.nodes: list[TransactionNode] = []
+        self.edges: dict[tuple[str, str], dict] = {}
+        self._initialize_from_entities()
+    
+    def _initialize_from_entities(self):
+        for i, name in enumerate(ENTITY_NAMES):
+            node_id = f"ENT-{100 + i:03d}"
+            num_connections = random.randint(1, 3)
+            connections = []
+            
+            for j in range(num_connections):
+                target_idx = (i + j + 1) % len(ENTITY_NAMES)
+                target_id = f"ENT-{100 + target_idx:03d}"
+                if target_id not in connections:
+                    connections.append(target_id)
+                    self.edges[(node_id, target_id)] = {"amount": round(random.uniform(1000, 100000), 2)}
+            
+            self.nodes.append(TransactionNode(
+                id=node_id,
+                type="account",
+                label=name,
+                risk=random.randint(0, 100),
+                connections=connections
+            ))
+    
+    def add_edge(self, source_id: str, target_id: str, amount: float, risk: int = 50) -> tuple[TransactionNode, TransactionNode]:
+        if not any(n.id == source_id for n in self.nodes):
+            self.nodes.append(TransactionNode(
+                id=source_id,
+                type="account",
+                label=source_id,
+                risk=risk,
+                connections=[]
+            ))
+        
+        if not any(n.id == target_id for n in self.nodes):
+            self.nodes.append(TransactionNode(
+                id=target_id,
+                type="account",
+                label=target_id,
+                risk=risk,
+                connections=[]
+            ))
+        
+        for node in self.nodes:
+            if node.id == source_id and target_id not in node.connections:
+                node.connections.append(target_id)
+        
+        self.edges[(source_id, target_id)] = {"amount": amount}
+        
+        source_node = next(n for n in self.nodes if n.id == source_id)
+        target_node = next(n for n in self.nodes if n.id == target_id)
+        
+        return source_node, target_node
+    
+    def get_edges_for_graph(self) -> list[dict]:
+        return [
+            {"source": s, "target": t, **data}
+            for (s, t), data in self.edges.items()
+        ]
+    
+    def reset(self):
+        self.nodes = []
+        self.edges = {}
+        self._initialize_from_entities()
+
+
+graph_state = GraphState()
+
 
 def generate_alerts(count: int = 20) -> list[Alert]:
     alerts = []
@@ -48,28 +121,6 @@ def generate_alerts(count: int = 20) -> list[Alert]:
     
     return sorted(alerts, key=lambda x: x.timestamp, reverse=True)
 
-def generate_nodes() -> list[TransactionNode]:
-    nodes = []
-    for i, name in enumerate(ENTITY_NAMES):
-        node_id = f"ENT-{100 + i:03d}"
-        num_connections = random.randint(1, 3)
-        connections = []
-        
-        for j in range(num_connections):
-            target_idx = (i + j + 1) % len(ENTITY_NAMES)
-            target_id = f"ENT-{100 + target_idx:03d}"
-            if target_id not in connections:
-                connections.append(target_id)
-        
-        nodes.append(TransactionNode(
-            id=node_id,
-            type="account",
-            label=name,
-            risk=random.randint(0, 100),
-            connections=connections
-        ))
-    
-    return nodes
 
 MOCK_ALERTS = generate_alerts(20)
-MOCK_NODES = generate_nodes()
+MOCK_NODES = graph_state.nodes

@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Brain, ChevronDown, ChevronUp, Loader2, Sparkles, Play, AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { riskColor } from '../../utils/colors';
 
 interface GraphMetrics {
@@ -34,6 +35,7 @@ export function FloatingAIPanel() {
   const [isExpanded, setIsExpanded] = useState(true);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [prediction, setPrediction] = useState<PredictionResult | null>(null);
+  const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     sender_id: 'ENT-100',
     receiver_id: 'ENT-102',
@@ -57,6 +59,8 @@ export function FloatingAIPanel() {
       });
       const data = await response.json();
       setPrediction(data);
+      
+      queryClient.invalidateQueries({ queryKey: ['nodes'] });
     } catch (error) {
       console.error('Prediction failed:', error);
     } finally {

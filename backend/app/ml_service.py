@@ -3,10 +3,12 @@ from pathlib import Path
 from typing import Optional
 import pandas as pd
 import networkx as nx
+from .mock_data import graph_state
 
 MODEL_PATH = Path(__file__).parent.parent.parent / "Model"
 MODEL_FILE = MODEL_PATH / "model.pkl"
 COLUMNS_FILE = MODEL_PATH / "columns.pkl"
+
 
 class MLService:
     def __init__(self):
@@ -14,7 +16,7 @@ class MLService:
         self.feature_columns: list = []
         self.graph = nx.DiGraph()
         self._load_model()
-        self._initialize_graph()
+        self._initialize_graph_from_state()
 
     def _load_model(self):
         try:
@@ -28,15 +30,15 @@ class MLService:
             self.model = None
             self.feature_columns = []
 
-    def _initialize_graph(self):
-        self.graph.add_node("ENT-100", label="Acme Holdings Ltd", type="account")
-        self.graph.add_node("ENT-101", label="Quantum Ventures", type="account")
-        self.graph.add_node("ENT-102", label="Nexus Capital", type="account")
-        self.graph.add_node("ENT-103", label="Vertex Solutions", type="account")
-        self.graph.add_node("ENT-104", label="Meridian Trust Co", type="account")
-        self.graph.add_edge("ENT-100", "ENT-101")
-        self.graph.add_edge("ENT-101", "ENT-102")
-        self.graph.add_edge("ENT-102", "ENT-100")
+    def _initialize_graph_from_state(self):
+        for node in graph_state.nodes:
+            self.graph.add_node(node.id, label=node.label, type=node.type)
+        
+        for node in graph_state.nodes:
+            for conn in node.connections:
+                if self.graph.has_node(conn):
+                    self.graph.add_edge(node.id, conn)
+        
         print(f"Graph initialized with {self.graph.number_of_nodes()} nodes and {self.graph.number_of_edges()} edges")
 
     def is_available(self) -> bool:
@@ -48,12 +50,13 @@ class MLService:
         amount = transaction_data.get("amount", 0)
 
         ml_prob = self._get_ml_probability(transaction_data)
-        
         graph_metrics = self._calculate_graph_metrics(sender, receiver)
-        
         final_probability = min(99.9, ml_prob + graph_metrics["total_boost"])
         is_fraud = final_probability >= 70
 
+        risk = int(final_probability)
+        source_node, target_node = graph_state.add_edge(sender, receiver, amount, risk)
+        
         self.graph.add_node(sender, label=sender, type="account")
         self.graph.add_node(receiver, label=receiver, type="account")
         self.graph.add_edge(sender, receiver, amount=amount)
@@ -103,13 +106,6 @@ class MLService:
                 clustering_boost = 10.0
         except:
             clustering_coef = 0.0
-        
-        if sender in self.graph and receiver in self.graph:
-            try:
-                if nx.has_path(self.graph, receiver, sender):
-                    cycle_boost = 30.0
-            except:
-                pass
         
         new_edge_creates_cycle = (
             sender in self.graph and 
@@ -170,18 +166,13 @@ class MLService:
 
     def get_graph_state(self) -> dict:
         return {
-            "nodes": [
-                {"id": n, "label": self.graph.nodes[n].get("label", n), "type": self.graph.nodes[n].get("type", "account")}
-                for n in self.graph.nodes()
-            ],
-            "edges": [
-                {"source": u, "target": v, "amount": self.graph.edges[u, v].get("amount", 0)}
-                for u, v in self.graph.edges()
-            ],
+            "nodes": graph_state.nodes,
+            "edges": graph_state.get_edges_for_graph(),
             "stats": {
-                "total_nodes": self.graph.number_of_nodes(),
-                "total_edges": self.graph.number_of_edges()
+                "total_nodes": len(graph_state.nodes),
+                "total_edges": len(graph_state.edges)
             }
         }
+
 
 ml_service = MLService()
