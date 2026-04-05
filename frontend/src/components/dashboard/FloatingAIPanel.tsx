@@ -110,7 +110,7 @@ export function FloatingAIPanel({ isSandboxMode = false }: FloatingAIPanelProps)
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 50 }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="fixed bottom-8 left-1/2 -translate-x-1/2 w-[800px] z-50"
+        className="fixed bottom-8 left-1/2 -translate-x-1/2 w-[960px] z-50"
       >
         <div 
           className="rounded-2xl overflow-hidden"
@@ -167,7 +167,7 @@ export function FloatingAIPanel({ isSandboxMode = false }: FloatingAIPanelProps)
             </div>
           </div>
 
-          <div className="p-6">
+          <div className="p-8">
             <AnimatePresence mode="wait">
               {activeTab === 'ml' ? (
                 <motion.div
@@ -176,21 +176,21 @@ export function FloatingAIPanel({ isSandboxMode = false }: FloatingAIPanelProps)
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                 >
-                  <div className="grid grid-cols-5 gap-6">
+                  <div className="grid grid-cols-5 gap-8">
                     {/* Left: Input Form */}
-                    <div className="col-span-2 space-y-4">
-                      <p className="text-[10px] uppercase tracking-widest font-bold" style={{ color: '#52525b' }}>
+                    <div className="col-span-2 space-y-5">
+                      <p className="text-xs uppercase tracking-widest font-bold" style={{ color: '#52525b' }}>
                         Transaction Parameters
                       </p>
                       
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="text-[10px] uppercase tracking-wide mb-1 block" style={{ color: '#71717a' }}>Sender ID</label>
+                          <label className="text-[11px] uppercase tracking-wide mb-2 block" style={{ color: '#71717a' }}>Sender ID</label>
                           <input
                             type="text"
                             value={formData.sender_id}
                             onChange={(e) => setFormData({ ...formData, sender_id: e.target.value })}
-                            className="w-full h-10 px-3 rounded-lg text-sm outline-none transition-all"
+                            className="w-full h-12 px-4 rounded-lg text-sm outline-none transition-all"
                             style={{ 
                               background: 'rgba(255,255,255,0.04)', 
                               border: '1px solid rgba(255,255,255,0.08)',
@@ -199,12 +199,12 @@ export function FloatingAIPanel({ isSandboxMode = false }: FloatingAIPanelProps)
                           />
                         </div>
                         <div>
-                          <label className="text-[10px] uppercase tracking-wide mb-1 block" style={{ color: '#71717a' }}>Receiver ID</label>
+                          <label className="text-[11px] uppercase tracking-wide mb-2 block" style={{ color: '#71717a' }}>Receiver ID</label>
                           <input
                             type="text"
                             value={formData.receiver_id}
                             onChange={(e) => setFormData({ ...formData, receiver_id: e.target.value })}
-                            className="w-full h-10 px-3 rounded-lg text-sm outline-none transition-all"
+                            className="w-full h-12 px-4 rounded-lg text-sm outline-none transition-all"
                             style={{ 
                               background: 'rgba(255,255,255,0.04)', 
                               border: '1px solid rgba(255,255,255,0.08)',
@@ -214,14 +214,14 @@ export function FloatingAIPanel({ isSandboxMode = false }: FloatingAIPanelProps)
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="text-[10px] uppercase tracking-wide mb-1 block" style={{ color: '#71717a' }}>Amount ($)</label>
+                          <label className="text-[11px] uppercase tracking-wide mb-2 block" style={{ color: '#71717a' }}>Amount ($)</label>
                           <input
                             type="number"
                             value={formData.amount}
                             onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })}
-                            className="w-full h-10 px-3 rounded-lg text-sm outline-none transition-all"
+                            className="w-full h-12 px-4 rounded-lg text-sm outline-none transition-all"
                             style={{ 
                               background: 'rgba(255,255,255,0.04)', 
                               border: '1px solid rgba(255,255,255,0.08)',
@@ -230,11 +230,11 @@ export function FloatingAIPanel({ isSandboxMode = false }: FloatingAIPanelProps)
                           />
                         </div>
                         <div>
-                          <label className="text-[10px] uppercase tracking-wide mb-1 block" style={{ color: '#71717a' }}>Type</label>
+                          <label className="text-[11px] uppercase tracking-wide mb-2 block" style={{ color: '#71717a' }}>Type</label>
                           <select
                             value={formData.type}
                             onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                            className="w-full h-10 px-3 rounded-lg text-sm outline-none transition-all cursor-pointer"
+                            className="w-full h-12 px-4 rounded-lg text-sm outline-none transition-all cursor-pointer"
                             style={{ 
                               background: 'rgba(255,255,255,0.04)', 
                               border: '1px solid rgba(255,255,255,0.08)',
@@ -248,14 +248,14 @@ export function FloatingAIPanel({ isSandboxMode = false }: FloatingAIPanelProps)
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="text-[10px] uppercase tracking-wide mb-1 block" style={{ color: '#71717a' }}>Sender Balance</label>
+                          <label className="text-[11px] uppercase tracking-wide mb-2 block" style={{ color: '#71717a' }}>Sender Balance</label>
                           <input
                             type="number"
                             value={formData.oldbalanceOrg}
                             onChange={(e) => setFormData({ ...formData, oldbalanceOrg: Number(e.target.value) })}
-                            className="w-full h-10 px-3 rounded-lg text-sm outline-none transition-all"
+                            className="w-full h-12 px-4 rounded-lg text-sm outline-none transition-all"
                             style={{ 
                               background: 'rgba(255,255,255,0.04)', 
                               border: '1px solid rgba(255,255,255,0.08)',
@@ -264,12 +264,12 @@ export function FloatingAIPanel({ isSandboxMode = false }: FloatingAIPanelProps)
                           />
                         </div>
                         <div>
-                          <label className="text-[10px] uppercase tracking-wide mb-1 block" style={{ color: '#71717a' }}>Receiver Balance</label>
+                          <label className="text-[11px] uppercase tracking-wide mb-2 block" style={{ color: '#71717a' }}>Receiver Balance</label>
                           <input
                             type="number"
                             value={formData.oldbalanceDest}
                             onChange={(e) => setFormData({ ...formData, oldbalanceDest: Number(e.target.value) })}
-                            className="w-full h-10 px-3 rounded-lg text-sm outline-none transition-all"
+                            className="w-full h-12 px-4 rounded-lg text-sm outline-none transition-all"
                             style={{ 
                               background: 'rgba(255,255,255,0.04)', 
                               border: '1px solid rgba(255,255,255,0.08)',
@@ -284,7 +284,7 @@ export function FloatingAIPanel({ isSandboxMode = false }: FloatingAIPanelProps)
                         disabled={isAnalyzing}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        className="w-full h-12 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                        className="w-full h-14 rounded-xl font-semibold text-sm flex items-center justify-center gap-3 transition-all disabled:opacity-50"
                         style={{
                           background: 'linear-gradient(135deg, #8b5cf6 0%, #a855f7 50%, #c084fc 100%)',
                           boxShadow: '0 4px 20px rgba(139,92,246,0.4)'
@@ -310,8 +310,8 @@ export function FloatingAIPanel({ isSandboxMode = false }: FloatingAIPanelProps)
                     </div>
 
                     {/* Right: Results */}
-                    <div className="col-span-2 space-y-4">
-                      <p className="text-[10px] uppercase tracking-widest font-bold" style={{ color: '#52525b' }}>
+                    <div className="col-span-2 space-y-5">
+                      <p className="text-xs uppercase tracking-widest font-bold" style={{ color: '#52525b' }}>
                         Analysis Results
                       </p>
 
@@ -319,37 +319,37 @@ export function FloatingAIPanel({ isSandboxMode = false }: FloatingAIPanelProps)
                         <motion.div 
                           initial={{ opacity: 0, scale: 0.98 }}
                           animate={{ opacity: 1, scale: 1 }}
-                          className="space-y-4"
+                          className="space-y-5"
                         >
                           {/* Risk Score */}
                           <div 
-                            className="rounded-xl p-4"
+                            className="rounded-xl p-5"
                             style={{ 
                               background: `${riskColorValue}08`,
                               border: `1px solid ${riskColorValue}30`
                             }}
                           >
-                            <div className="flex items-center justify-between mb-3">
-                              <span className="text-4xl font-bold" style={{ 
+                            <div className="flex items-center justify-between mb-4">
+                              <span className="text-5xl font-bold" style={{ 
                                 color: riskColorValue,
                                 fontFamily: 'Space Grotesk, sans-serif'
                               }}>
                                 {prediction.fraud_probability.toFixed(1)}%
                               </span>
                               {prediction.is_fraud ? (
-                                <div className="flex items-center gap-1 px-3 py-1.5 rounded-full" style={{ background: 'rgba(239,68,68,0.15)' }}>
-                                  <AlertTriangle className="w-4 h-4" style={{ color: '#ef4444' }} />
-                                  <span className="text-xs font-bold" style={{ color: '#ef4444' }}>FRAUD DETECTED</span>
+                                <div className="flex items-center gap-2 px-4 py-2 rounded-full" style={{ background: 'rgba(239,68,68,0.15)' }}>
+                                  <AlertTriangle className="w-5 h-5" style={{ color: '#ef4444' }} />
+                                  <span className="text-sm font-bold" style={{ color: '#ef4444' }}>FRAUD DETECTED</span>
                                 </div>
                               ) : (
-                                <div className="flex items-center gap-1 px-3 py-1.5 rounded-full" style={{ background: 'rgba(34,197,94,0.15)' }}>
-                                  <Sparkles className="w-4 h-4" style={{ color: '#22c55e' }} />
-                                  <span className="text-xs font-bold" style={{ color: '#22c55e' }}>CLEAR</span>
+                                <div className="flex items-center gap-2 px-4 py-2 rounded-full" style={{ background: 'rgba(34,197,94,0.15)' }}>
+                                  <Sparkles className="w-5 h-5" style={{ color: '#22c55e' }} />
+                                  <span className="text-sm font-bold" style={{ color: '#22c55e' }}>CLEAR</span>
                                 </div>
                               )}
                             </div>
                             
-                            <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
+                            <div className="h-3 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
                               <motion.div
                                 initial={{ width: 0 }}
                                 animate={{ width: `${prediction.fraud_probability}%` }}
@@ -362,10 +362,10 @@ export function FloatingAIPanel({ isSandboxMode = false }: FloatingAIPanelProps)
 
                           {/* Graph Metrics */}
                           <div 
-                            className="rounded-xl p-4 space-y-2"
+                            className="rounded-xl p-5 space-y-3"
                             style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
                           >
-                            <div className="flex items-center justify-between text-xs">
+                            <div className="flex items-center justify-between text-sm">
                               <span style={{ color: '#a1a1aa' }}>Base ML Confidence</span>
                               <span className="font-mono" style={{ color: '#fafafa' }}>
                                 {prediction.graph_metrics.base_confidence.toFixed(0)}%
@@ -373,7 +373,7 @@ export function FloatingAIPanel({ isSandboxMode = false }: FloatingAIPanelProps)
                             </div>
                             
                             {prediction.graph_metrics.degree_boost > 0 && (
-                              <div className="flex items-center justify-between text-xs">
+                              <div className="flex items-center justify-between text-sm">
                                 <span style={{ color: '#a1a1aa' }}>Node Degree Boost</span>
                                 <span className="font-mono" style={{ color: '#f59e0b' }}>
                                   +{prediction.graph_metrics.degree_boost}%
@@ -382,7 +382,7 @@ export function FloatingAIPanel({ isSandboxMode = false }: FloatingAIPanelProps)
                             )}
                             
                             {prediction.graph_metrics.clustering_boost > 0 && (
-                              <div className="flex items-center justify-between text-xs">
+                              <div className="flex items-center justify-between text-sm">
                                 <span style={{ color: '#a1a1aa' }}>Clustering Boost</span>
                                 <span className="font-mono" style={{ color: '#f59e0b' }}>
                                   +{prediction.graph_metrics.clustering_boost}%
@@ -394,7 +394,7 @@ export function FloatingAIPanel({ isSandboxMode = false }: FloatingAIPanelProps)
                               <motion.div 
                                 initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                className="flex items-center justify-between text-xs"
+                                className="flex items-center justify-between text-sm"
                               >
                                 <span style={{ color: '#ef4444' }}>Cycle Ring Detected</span>
                                 <span className="font-mono font-bold" style={{ color: '#ef4444' }}>
@@ -403,18 +403,18 @@ export function FloatingAIPanel({ isSandboxMode = false }: FloatingAIPanelProps)
                               </motion.div>
                             )}
                             
-                            <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '6px 0' }} />
+                            <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '8px 0' }} />
                             
-                            <div className="flex items-center justify-between text-sm">
+                            <div className="flex items-center justify-between text-base">
                               <span className="font-semibold" style={{ color: '#fafafa' }}>Final Risk Score</span>
-                              <span className="font-mono font-bold text-lg" style={{ color: riskColorValue }}>
+                              <span className="font-mono font-bold text-xl" style={{ color: riskColorValue }}>
                                 {prediction.fraud_probability.toFixed(1)}%
                               </span>
                             </div>
                           </div>
 
                           {/* Transaction Summary */}
-                          <div className="flex items-center gap-2 text-xs" style={{ color: '#71717a' }}>
+                          <div className="flex items-center gap-3 text-sm" style={{ color: '#71717a' }}>
                             <span>{formData.sender_id}</span>
                             <span>→</span>
                             <span>{formData.receiver_id}</span>
@@ -426,12 +426,12 @@ export function FloatingAIPanel({ isSandboxMode = false }: FloatingAIPanelProps)
                         </motion.div>
                       ) : (
                         <div 
-                          className="h-full rounded-xl flex flex-col items-center justify-center py-12"
+                          className="h-full rounded-xl flex flex-col items-center justify-center py-16"
                           style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
                         >
-                          <Brain className="w-12 h-12 mb-3" style={{ color: '#27272a' }} />
-                          <p className="text-sm" style={{ color: '#52525b' }}>Enter transaction parameters</p>
-                          <p className="text-xs" style={{ color: '#3f3f46' }}>ML results will appear here</p>
+                          <Brain className="w-16 h-16 mb-4" style={{ color: '#27272a' }} />
+                          <p className="text-base" style={{ color: '#52525b' }}>Enter transaction parameters</p>
+                          <p className="text-sm mt-1" style={{ color: '#3f3f46' }}>ML results will appear here</p>
                         </div>
                       )}
                     </div>
@@ -443,26 +443,26 @@ export function FloatingAIPanel({ isSandboxMode = false }: FloatingAIPanelProps)
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
-                  className="min-h-[300px]"
+                  className="min-h-[350px]"
                 >
-                  <div className="flex items-center justify-between mb-4">
-                    <p className="text-[10px] uppercase tracking-widest font-bold" style={{ color: '#52525b' }}>
+                  <div className="flex items-center justify-between mb-6">
+                    <p className="text-xs uppercase tracking-widest font-bold" style={{ color: '#52525b' }}>
                       Forensic Analysis Report
                     </p>
                     <button
                       onClick={handleGetAdvice}
                       disabled={isLoadingAdvice}
-                      className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-2 disabled:opacity-50"
+                      className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-50"
                       style={{ background: 'rgba(139,92,246,0.15)', color: '#a855f7' }}
                     >
                       {isLoadingAdvice ? (
                         <>
-                          <Loader2 className="w-3 h-3 animate-spin" />
+                          <Loader2 className="w-4 h-4 animate-spin" />
                           Generating...
                         </>
                       ) : (
                         <>
-                          <FileText className="w-3 h-3" />
+                          <FileText className="w-4 h-4" />
                           Refresh
                         </>
                       )}
@@ -470,19 +470,19 @@ export function FloatingAIPanel({ isSandboxMode = false }: FloatingAIPanelProps)
                   </div>
 
                   {isLoadingAdvice ? (
-                    <div className="space-y-3">
-                      <div className="h-4 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.04)', width: '40%' }} />
-                      <div className="h-3 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.03)', width: '90%' }} />
-                      <div className="h-3 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.03)', width: '75%' }} />
-                      <div className="h-4 rounded animate-pulse mt-4" style={{ background: 'rgba(255,255,255,0.04)', width: '30%' }} />
-                      <div className="h-3 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.03)', width: '85%' }} />
-                      <div className="h-3 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.03)', width: '60%' }} />
+                    <div className="space-y-4">
+                      <div className="h-5 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.04)', width: '40%' }} />
+                      <div className="h-4 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.03)', width: '90%' }} />
+                      <div className="h-4 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.03)', width: '75%' }} />
+                      <div className="h-5 rounded animate-pulse mt-6" style={{ background: 'rgba(255,255,255,0.04)', width: '30%' }} />
+                      <div className="h-4 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.03)', width: '85%' }} />
+                      <div className="h-4 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.03)', width: '60%' }} />
                     </div>
                   ) : advice ? (
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="rounded-xl p-5 prose prose-sm prose-invert max-w-none"
+                      className="rounded-xl p-6 prose prose-sm prose-invert max-w-none"
                       style={{ 
                         background: 'rgba(255,255,255,0.02)', 
                         border: '1px solid rgba(255,255,255,0.04)',
@@ -492,41 +492,41 @@ export function FloatingAIPanel({ isSandboxMode = false }: FloatingAIPanelProps)
                       {advice.split('\n').map((line, i) => {
                         if (line.startsWith('**') && line.endsWith('**')) {
                           return (
-                            <h4 key={i} className="text-sm font-bold mt-4 mb-2" style={{ color: '#fafafa' }}>
+                            <h4 key={i} className="text-base font-bold mt-6 mb-3" style={{ color: '#fafafa' }}>
                               {line.replace(/\*\*/g, '')}
                             </h4>
                           );
                         }
                         if (line.startsWith('•')) {
                           return (
-                            <div key={i} className="flex items-start gap-2 ml-2 my-1">
+                            <div key={i} className="flex items-start gap-3 ml-3 my-2">
                               <span style={{ color: '#8b5cf6' }}>▸</span>
-                              <span className="text-sm">{line.replace('• ', '')}</span>
+                              <span className="text-base">{line.replace('• ', '')}</span>
                             </div>
                           );
                         }
                         if (line.match(/^\d+\./)) {
                           return (
-                            <div key={i} className="flex items-start gap-2 my-1">
+                            <div key={i} className="flex items-start gap-3 my-2">
                               <span className="font-bold" style={{ color: '#8b5cf6' }}>{line.match(/^\d+/)?.[0]}.</span>
-                              <span className="text-sm">{line.replace(/^\d+\.\s*/, '')}</span>
+                              <span className="text-base">{line.replace(/^\d+\.\s*/, '')}</span>
                             </div>
                           );
                         }
                         if (line.trim()) {
-                          return <p key={i} className="text-sm my-1">{line}</p>;
+                          return <p key={i} className="text-base my-2">{line}</p>;
                         }
                         return null;
                       })}
                     </motion.div>
                   ) : (
                     <div 
-                      className="h-full rounded-xl flex flex-col items-center justify-center py-12"
+                      className="h-full rounded-xl flex flex-col items-center justify-center py-16"
                       style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
                     >
-                      <FileText className="w-12 h-12 mb-3" style={{ color: '#27272a' }} />
-                      <p className="text-sm" style={{ color: '#52525b' }}>Run ML analysis first</p>
-                      <p className="text-xs" style={{ color: '#3f3f46' }}>LLM advice will appear here</p>
+                      <FileText className="w-16 h-16 mb-4" style={{ color: '#27272a' }} />
+                      <p className="text-base" style={{ color: '#52525b' }}>Run ML analysis first</p>
+                      <p className="text-sm mt-1" style={{ color: '#3f3f46' }}>LLM advice will appear here</p>
                     </div>
                   )}
                 </motion.div>
