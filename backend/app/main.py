@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 from .mock_data import MOCK_ALERTS, MOCK_NODES
@@ -11,8 +11,12 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:4173",
         "http://localhost:5173",
-        "http://localhost:3000",
-        "http://localhost:8000"
+        "http://localhost:5174",
+        "http://127.0.0.1:4173",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -32,7 +36,7 @@ def get_alert(alert_id: str):
     for alert in MOCK_ALERTS:
         if alert.id == alert_id:
             return alert
-    return {"error": "Alert not found"}
+    raise HTTPException(status_code=404, detail="Alert not found")
 
 @app.get("/api/nodes", response_model=list[TransactionNode])
 def get_nodes():
@@ -43,7 +47,7 @@ def get_node(node_id: str):
     for node in MOCK_NODES:
         if node.id == node_id:
             return node
-    return {"error": "Node not found"}
+    raise HTTPException(status_code=404, detail="Node not found")
 
 if __name__ == "__main__":
     import uvicorn
