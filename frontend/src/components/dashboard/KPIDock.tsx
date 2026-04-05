@@ -15,10 +15,10 @@ export function KPIDock() {
   const sparkLatency = [10, 12, 11, 14, 13, 15, 12, 14, 16, 13, 15, 12];
 
   return (
-    <div className="fixed top-[92px] left-1/2 -translate-x-1/2 z-40 w-full max-w-5xl px-6 flex gap-4">
+    <div className="fixed top-[80px] left-[340px] right-[400px] z-40 px-6 flex gap-3 overflow-x-auto pb-2">
       <MiniKPICard label="Transaction Vol" value="8.47M" trend="up" trendValue="+12.5%" color="#10b981" sparkData={sparkVolume} delay={0.1} />
       <MiniKPICard label="Prevention Rate" value="99.2%" trend="up" trendValue="+0.3%" color="#10b981" sparkData={sparkPrevention} delay={0.2} />
-      <MiniKPICard label="Active High-Risk" value="23" trend="down" trendValue="+5" color="#f43f5e" sparkData={sparkRisk} delay={0.3} />
+      <MiniKPICard label="Active High-Risk" value="23" trend="up" trendValue="+5" color="#f43f5e" sparkData={sparkRisk} delay={0.3} />
       <MiniKPICard label="System Latency" value={`${latency}ms`} trend="neutral" trendValue="OK" color="#f59e0b" sparkData={sparkLatency} delay={0.4} />
     </div>
   );

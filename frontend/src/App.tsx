@@ -18,7 +18,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       {authenticated ? (
-        <DashboardPage />
+        <DashboardPage onLogout={() => setAuthenticated(false)} />
       ) : (
         <LoginPage onLogin={() => setAuthenticated(true)} />
       )}

@@ -3,14 +3,19 @@ import { motion } from 'framer-motion';
 import { Network } from 'lucide-react';
 import ForceGraph3D from 'react-force-graph-3d';
 import * as THREE from 'three';
-import { useSubgraph } from '../../hooks/useFraudDetection';
+import { useQuery } from '@tanstack/react-query';
+import { fetchNodes } from '../../api/fraudApi';
 import type { TransactionNode } from '../../types';
 import { riskColor } from '../../utils/colors';
 
-export function GraphCanvas({ entityId, onNodeClick }: { entityId: string | null; onNodeClick: (n: TransactionNode) => void }) {
+export function GraphCanvas({ entityId: _entityId, onNodeClick }: { entityId: string | null; onNodeClick: (n: TransactionNode) => void }) {
   const graphRef = useRef<any>(null);
   const [dims, setDims] = useState({ w: window.innerWidth, h: window.innerHeight });
-  const { data, isLoading } = useSubgraph(entityId ?? 'default');
+  const { data: nodes, isLoading } = useQuery({
+    queryKey: ['nodes'],
+    queryFn: fetchNodes,
+    refetchInterval: 30000,
+  });
 
   useEffect(() => {
     const handleResize = () => setDims({ w: window.innerWidth, h: window.innerHeight });
@@ -23,14 +28,13 @@ export function GraphCanvas({ entityId, onNodeClick }: { entityId: string | null
       graphRef.current.d3Force('charge')?.strength(-150);
       graphRef.current.d3Force('link')?.distance(80);
     }
-  }, [data]);
+  }, [nodes]);
 
   const nodeObj = useCallback((node: any) => {
-    const score = node.riskScore ?? 0;
+    const score = node.riskScore ?? node.risk / 100;
     const color = riskColor(score);
     const g = new THREE.Group();
     
-    // Core sphere
     const isHighRisk = score >= 0.6;
     const mesh = new THREE.Mesh(
       new THREE.SphereGeometry(isHighRisk ? 5 : 3, 16, 16),
@@ -44,7 +48,6 @@ export function GraphCanvas({ entityId, onNodeClick }: { entityId: string | null
     );
     g.add(mesh);
 
-    // Glowing halo for higher risks
     if (isHighRisk) {
       const ring = new THREE.Mesh(
         new THREE.RingGeometry(8, 9, 32),
@@ -57,46 +60,28 @@ export function GraphCanvas({ entityId, onNodeClick }: { entityId: string | null
     return g;
   }, []);
 
-  const hasData = data && data.nodes.length > 0;
+  const graphData = nodes ? {
+    nodes: nodes.map(n => ({ ...n, riskScore: n.risk / 100 })),
+    links: nodes.flatMap(n => n.connections.map(targetId => ({ source: n.id, target: targetId }))),
+  } : { nodes: [], links: [] };
+
+  const hasData = nodes && nodes.length > 0;
 
   return (
-    <div className="absolute inset-0 z-0 bg-zinc-950 overflow-hidden">
-      {/* Background Grid Pattern */}
-      <div 
-        className="absolute inset-0 pointer-events-none opacity-20" 
-        style={{ 
-          backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)', 
-          backgroundSize: '40px 40px' 
-        }} 
-      />
-      
-      {/* Loading Overlay */}
-      {isLoading && !hasData && (
-        <div className="absolute inset-0 flex items-center justify-center z-10 bg-zinc-950/50 backdrop-blur-sm">
-          <motion.div animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 2, repeat: Infinity }} className="flex flex-col items-center gap-4">
-            <div className="relative w-12 h-12">
-              <div className="absolute inset-0 border-2 border-rose-500/20 rounded-full" />
-              <div className="absolute inset-0 border-2 border-rose-500 rounded-full border-t-transparent animate-spin" />
-            </div>
-            <p className="text-sm font-medium tracking-wide text-zinc-400 uppercase">Synthesizing Network Data...</p>
-          </motion.div>
-        </div>
-      )}
-
-      {/* Graph Area */}
+    <div className="absolute inset-0 z-0 overflow-hidden" style={{ background: '#09090b' }}>
       {hasData && (
         <ForceGraph3D
           ref={graphRef}
-          graphData={data!}
+          graphData={graphData}
           nodeId="id"
           nodeLabel="label"
           nodeThreeObject={nodeObj}
           nodeThreeObjectExtend={false}
           linkWidth={1}
-          linkColor={(l: any) => l.isFlagged ? 'rgba(244,63,94,0.4)' : 'rgba(255,255,255,0.1)'}
+          linkColor={() => 'rgba(255,255,255,0.1)'}
           linkDirectionalParticles={2}
           linkDirectionalParticleWidth={1.5}
-          linkDirectionalParticleColor={(l: any) => l.isFlagged ? '#f43f5e' : '#f59e0b'}
+          linkDirectionalParticleColor={() => '#f59e0b'}
           linkDirectionalParticleSpeed={0.005}
           onNodeClick={(n: any) => onNodeClick(n as TransactionNode)}
           cooldownTicks={150}
@@ -113,9 +98,9 @@ export function GraphCanvas({ entityId, onNodeClick }: { entityId: string | null
       {/* Empty State */}
       {!hasData && !isLoading && (
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-          <motion.div animate={{ opacity: [0.4, 0.7, 0.4] }} transition={{ duration: 4, repeat: Infinity }} className="flex flex-col items-center">
-            <Network className="w-20 h-20 text-zinc-800 mb-6 drop-shadow-2xl" />
-            <p className="text-base font-medium text-zinc-600">Select an alert to initiate forensic graph rendering</p>
+          <motion.div animate={{ opacity: [0.3, 0.5, 0.3] }} transition={{ duration: 4, repeat: Infinity }} className="text-center">
+            <Network className="w-16 h-16 mx-auto mb-4" style={{ color: '#27272a' }} />
+            <p className="text-sm" style={{ color: '#3f3f46' }}>Select an alert to analyze network</p>
           </motion.div>
         </div>
       )}

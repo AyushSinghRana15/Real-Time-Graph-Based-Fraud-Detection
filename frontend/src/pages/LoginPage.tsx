@@ -29,7 +29,7 @@ function InteractiveNodeBackground() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d', { alpha: false }); // alpha false for performance, will paint background manually
+    const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
 
     const resize = () => {
@@ -52,51 +52,37 @@ function InteractiveNodeBackground() {
     const MOUSE_DIST = 250;
 
     const draw = () => {
-      // Paint dark background
       ctx.fillStyle = '#09090b';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       const mouse = mouseRef.current;
 
-      // Update positions
       nodesRef.current.forEach(n => {
-        // Mouse avoidance/attraction
         if (mouse.x > 0) {
           const dx = mouse.x - n.x;
           const dy = mouse.y - n.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist < MOUSE_DIST) {
-            // Gentle attraction
             const force = (MOUSE_DIST - dist) / MOUSE_DIST * 0.05;
             n.vx += (dx / dist) * force;
             n.vy += (dy / dist) * force;
           }
         }
-
-        // Friction and velocity
         n.vx *= 0.98;
         n.vy *= 0.98;
-        
-        // Base drift
         n.vx += (Math.random() - 0.5) * 0.05;
         n.vy += (Math.random() - 0.5) * 0.05;
-
         n.x += n.vx;
         n.y += n.vy;
-
-        // Wrap edges
         if (n.x < -20) n.x = canvas.width + 20;
         if (n.x > canvas.width + 20) n.x = -20;
         if (n.y < -20) n.y = canvas.height + 20;
         if (n.y > canvas.height + 20) n.y = -20;
       });
 
-      // Draw lines
       ctx.lineWidth = 0.8;
       for (let i = 0; i < nodesRef.current.length; i++) {
         const a = nodesRef.current[i];
-        
-        // Connect to mouse
         if (mouse.x > 0) {
           const dx = mouse.x - a.x;
           const dy = mouse.y - a.y;
@@ -106,39 +92,31 @@ function InteractiveNodeBackground() {
             ctx.beginPath();
             ctx.moveTo(a.x, a.y);
             ctx.lineTo(mouse.x, mouse.y);
-            // Draw amber/orange line to mouse
             ctx.strokeStyle = `rgba(245,158,11,${op})`;
             ctx.stroke();
           }
         }
-
-        // Connect node to node
         for (let j = i + 1; j < nodesRef.current.length; j++) {
           const b = nodesRef.current[j];
           const dx = b.x - a.x;
           const dy = b.y - a.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-
           if (dist < EDGE_DIST) {
             const op = (1 - dist / EDGE_DIST) * 0.2;
             ctx.beginPath();
             ctx.moveTo(a.x, a.y);
             ctx.lineTo(b.x, b.y);
-            // Draw rose lines between nodes
             ctx.strokeStyle = `rgba(244,63,94,${op})`;
             ctx.stroke();
           }
         }
       }
 
-      // Draw nodes
       nodesRef.current.forEach(n => {
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
         ctx.fillStyle = 'rgba(244,63,94,0.6)';
         ctx.fill();
-        
-        // Add a soft glow
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.radius * 3, 0, Math.PI * 2);
         const grad = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.radius * 3);
@@ -148,13 +126,11 @@ function InteractiveNodeBackground() {
         ctx.fill();
       });
 
-      // Draw mouse cursor glow
       if (mouse.x > 0) {
         ctx.beginPath();
         ctx.arc(mouse.x, mouse.y, 6, 0, Math.PI * 2);
         ctx.fillStyle = 'rgba(245,158,11,0.8)';
         ctx.fill();
-
         ctx.beginPath();
         ctx.arc(mouse.x, mouse.y, 30, 0, Math.PI * 2);
         const mouseGrad = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 30);
@@ -166,6 +142,7 @@ function InteractiveNodeBackground() {
 
       rafRef.current = requestAnimationFrame(draw);
     };
+
     draw();
 
     return () => {
@@ -186,7 +163,6 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [focusedInput, setFocusedInput] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -196,102 +172,154 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col font-sans selection:bg-rose-500/30">
+    <div className="relative min-h-screen flex flex-col overflow-hidden" style={{ background: '#09090b' }}>
       <InteractiveNodeBackground />
 
-      <header className="relative z-10 flex items-center justify-between px-8 py-6">
+      <header className="relative z-10 flex items-center justify-between px-6 py-5">
         <motion.div className="flex items-center gap-3" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-rose-500/10 border border-rose-500/20 shadow-[0_0_20px_rgba(244,63,94,0.15)]">
-            <span className="font-bold text-rose-500" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>FL</span>
+          <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: 'rgba(244,63,94,0.15)', border: '1px solid rgba(244,63,94,0.3)', boxShadow: '0 0 30px rgba(244,63,94,0.2)' }}>
+            <span className="font-bold text-base" style={{ color: '#f43f5e', fontFamily: 'Space Grotesk, sans-serif' }}>FL</span>
           </div>
           <div>
-            <span className="text-xl font-bold text-zinc-100 tracking-tight" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>Forensic Lens</span>
+            <span className="text-xl font-semibold" style={{ color: '#fafafa', fontFamily: 'Space Grotesk, sans-serif' }}>Forensic Lens</span>
+            <p className="text-xs mt-0.5" style={{ color: '#71717a' }}>Financial Intelligence Platform</p>
           </div>
         </motion.div>
         <motion.div className="flex items-center gap-2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-          <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]" />
-          <span className="text-sm font-medium text-emerald-500 tracking-wide uppercase">Systems Operational</span>
+          <div className="w-2 h-2 rounded-full" style={{ background: '#10b981', boxShadow: '0 0 10px #10b981' }} />
+          <span className="text-sm" style={{ color: '#71717a' }}>Systems operational</span>
         </motion.div>
       </header>
 
-      <main className="relative z-10 flex-grow flex items-center justify-center p-6">
-        <motion.div 
-          initial={{ opacity: 0, y: 50, scale: 0.95 }} 
-          animate={{ opacity: 1, y: 0, scale: 1 }} 
-          transition={{ duration: 0.7, type: 'spring', damping: 25 }} 
-          className="w-full max-w-md"
-        >
-          {/* Glassmorphic Premium Card */}
-          <div className="relative rounded-3xl overflow-hidden shadow-2xl p-10 bg-zinc-950/40 backdrop-blur-3xl border border-white/10 ring-1 ring-white/5 box-shadow-[0_0_60px_-15px_rgba(0,0,0,0.8)]">
+      <main className="relative z-10 flex-grow flex items-center justify-center px-4 py-8">
+        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.3 }} className="w-full max-w-md">
+          <div 
+            className="relative overflow-hidden rounded-3xl p-12"
+            style={{ 
+              background: 'rgba(9,9,11,0.4)',
+              backdropFilter: 'blur(40px)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)',
+            }}
+          >
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(244,63,94,0.03) 0%, transparent 40%)' }} />
             
-            <div className="text-center mb-10">
-              <motion.h1 className="text-3xl font-extrabold mb-3 text-zinc-100" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
-                Command Center
-              </motion.h1>
-              <p className="text-sm font-medium text-zinc-400">Authenticate to access forensic analytics</p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-6 lg:space-y-8">
-              <div className="relative">
-                <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-zinc-400">Email Address</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  onFocus={() => setFocusedInput('email')}
-                  onBlur={() => setFocusedInput(null)}
-                  placeholder="admin@forensic.lens"
-                  className="w-full h-12 bg-transparent border-0 border-b-2 text-zinc-100 text-lg placeholder:text-zinc-600 focus:outline-none focus:ring-0 transition-colors"
-                  style={{ borderBottomColor: focusedInput === 'email' ? '#f43f5e' : 'rgba(255,255,255,0.1)' }}
-                />
+            <div className="relative">
+              <div className="text-center mb-8">
+                <motion.h1 className="text-2xl font-semibold mb-2" style={{ color: '#fafafa', fontFamily: 'Space Grotesk, sans-serif' }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
+                  Welcome back
+                </motion.h1>
+                <motion.p className="text-sm" style={{ color: '#71717a' }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}>
+                  Sign in to access your command center
+                </motion.p>
               </div>
 
-              <div className="relative">
-                <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-zinc-400">Passcode</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  onFocus={() => setFocusedInput('password')}
-                  onBlur={() => setFocusedInput(null)}
-                  placeholder="••••••••••••"
-                  className="w-full h-12 bg-transparent border-0 border-b-2 text-zinc-100 text-lg placeholder:text-zinc-600 focus:outline-none focus:ring-0 transition-colors"
-                  style={{ borderBottomColor: focusedInput === 'password' ? '#f43f5e' : 'rgba(255,255,255,0.1)' }}
-                />
-              </div>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.7 }}>
+                  <label className="block text-sm font-medium mb-3" style={{ color: '#a1a1aa' }}>Email address</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="you@company.com"
+                    className="w-full h-12 px-4 rounded-xl text-sm bg-white/5 border border-white/10 text-white placeholder:text-zinc-500 focus:outline-none focus:border-rose-500/50 focus:bg-white/10 transition-all"
+                  />
+                </motion.div>
 
-              <div className="pt-4">
+                <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.8 }}>
+                  <label className="block text-sm font-medium mb-3" style={{ color: '#a1a1aa' }}>Password</label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    className="w-full h-12 px-4 rounded-xl text-sm bg-white/5 border border-white/10 text-white placeholder:text-zinc-500 focus:outline-none focus:border-rose-500/50 focus:bg-white/10 transition-all"
+                  />
+                </motion.div>
+
+                <motion.div className="flex items-center justify-end" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.85 }}>
+                  <button type="button" className="text-sm transition-colors hover:text-rose-400" style={{ color: '#f43f5e' }}>
+                    Forgot password?
+                  </button>
+                </motion.div>
+
                 <motion.button
                   type="submit"
                   disabled={isLoading || !email}
-                  className="w-full h-14 rounded-full font-bold text-sm tracking-wide uppercase text-white relative overflow-hidden group shadow-[0_0_20px_rgba(244,63,94,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full h-12 rounded-xl font-semibold text-sm relative overflow-hidden transition-all disabled:opacity-50"
+                  style={{ color: '#fff', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1), 0 4px 14px rgba(244,63,94,0.3)' }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.9 }}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-rose-600 to-rose-500 transition-transform group-hover:scale-105" />
-                  <span className="relative flex items-center justify-center gap-2 z-10">
+                  <div 
+                    className="absolute inset-0"
+                    style={{ 
+                      background: isLoading || !email ? 'rgba(244,63,94,0.7)' : 'linear-gradient(180deg, #f43f5e 0%, #e11d48 100%)',
+                    }}
+                  />
+                  <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 50%)' }} />
+                  <span className="relative flex items-center justify-center gap-2">
                     {isLoading ? (
                       <>
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Decrypting...
+                        <motion.div 
+                          className="w-5 h-5 border-2 rounded-full"
+                          style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#fff' }}
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                        />
+                        Authenticating...
                       </>
-                    ) : 'Initialize Session'}
+                    ) : (
+                      'Sign in to Dashboard'
+                    )}
                   </span>
                 </motion.button>
-              </div>
-            </form>
+              </form>
 
-            <div className="mt-8 pt-8 border-t border-white/5 text-center">
-              <button type="button" className="text-xs font-bold uppercase tracking-wider text-zinc-500 hover:text-white transition-colors">
-                Use Security Key / SSO
-              </button>
+              <motion.div className="flex items-center gap-4 my-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}>
+                <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)' }} />
+                <span className="text-xs px-2" style={{ color: '#52525b' }}>or continue with</span>
+                <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)' }} />
+              </motion.div>
+
+              <motion.button
+                className="w-full h-12 rounded-xl font-medium text-sm flex items-center justify-center gap-3 transition-all relative overflow-hidden"
+                style={{ 
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: '#fafafa',
+                }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.05 }}
+                whileHover={{ scale: 1.02, borderColor: 'rgba(255,255,255,0.15)' }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 50%)' }} />
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="relative">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                <span className="relative">Enterprise SSO</span>
+              </motion.button>
             </div>
           </div>
+
+          <motion.p className="text-center text-xs mt-6" style={{ color: '#52525b' }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.1 }}>
+            Protected by enterprise-grade security. By signing in, you agree to our Terms of Service.
+          </motion.p>
         </motion.div>
       </main>
 
-      <footer className="relative z-10 flex items-center justify-between px-8 py-6">
-        <span className="text-xs font-medium text-zinc-600 uppercase tracking-widest">© 2026 Forensic Lens</span>
+      <footer className="relative z-10 flex items-center justify-between px-6 py-4" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+        <span className="text-xs" style={{ color: '#52525b' }}>© 2026 Forensic Lens. All rights reserved.</span>
+        <div className="flex items-center gap-6">
+          <span className="text-xs cursor-pointer transition-colors" style={{ color: '#52525b' }} onMouseEnter={e => (e.currentTarget.style.color = '#71717a')} onMouseLeave={e => (e.currentTarget.style.color = '#52525b')}>Privacy</span>
+          <span className="text-xs cursor-pointer transition-colors" style={{ color: '#52525b' }} onMouseEnter={e => (e.currentTarget.style.color = '#71717a')} onMouseLeave={e => (e.currentTarget.style.color = '#52525b')}>Terms</span>
+          <span className="text-xs cursor-pointer transition-colors" style={{ color: '#52525b' }} onMouseEnter={e => (e.currentTarget.style.color = '#71717a')} onMouseLeave={e => (e.currentTarget.style.color = '#52525b')}>Support</span>
+        </div>
       </footer>
     </div>
   );

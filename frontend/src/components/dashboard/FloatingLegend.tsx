@@ -6,11 +6,11 @@ export function FloatingLegend() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.5 }}
-      className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 flex items-center gap-8 px-8 py-4 rounded-full shadow-2xl"
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-6 px-5 py-2.5 rounded-full"
       style={{ 
-        background: 'rgba(24,24,27,0.6)', 
-        backdropFilter: 'blur(20px)', 
-        border: '1px solid rgba(255,255,255,0.08)' 
+        background: 'rgba(12,12,15,0.8)', 
+        backdropFilter: 'blur(16px)', 
+        border: '1px solid rgba(255,255,255,0.04)' 
       }}
     >
       {[
@@ -19,9 +19,9 @@ export function FloatingLegend() {
         { color: '#eab308', label: 'Medium' },
         { color: '#10b981', label: 'Low' },
       ].map((item, i) => (
-        <div key={i} className="flex items-center gap-3">
-          <div className="w-2.5 h-2.5 rounded-full" style={{ background: item.color, boxShadow: `0 0 10px ${item.color}80` }} />
-          <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#a1a1aa' }}>{item.label}</span>
+        <div key={i} className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full" style={{ background: item.color }} />
+          <span className="text-xs" style={{ color: '#a1a1aa' }}>{item.label}</span>
         </div>
       ))}
     </motion.div>
