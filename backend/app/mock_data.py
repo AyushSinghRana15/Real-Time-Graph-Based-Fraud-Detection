@@ -107,6 +107,19 @@ def generate_alerts(count: int = 20) -> list[Alert]:
         hours_ago = random.randint(0, 23)
         timestamp = datetime.now() - timedelta(days=days_ago, hours=hours_ago)
         
+        reasons = []
+        if alert_type == "high_risk":
+            reasons = [
+                {"factor": "Large Transaction", "detail": f"${round(random.uniform(100000, 500000), 0):,.0f} exceeds $100K threshold", "weight": 40},
+                {"factor": "Unusual Velocity", "detail": "Multiple high-value transactions in short timeframe", "weight": 30},
+                {"factor": "Pattern Match", "detail": "Matches known fraud scheme patterns", "weight": 25}
+            ]
+        elif alert_type == "medium_risk":
+            reasons = [
+                {"factor": "Velocity Anomaly", "detail": "Transaction frequency exceeds baseline", "weight": 25},
+                {"factor": "Amount Threshold", "detail": f"${round(random.uniform(50000, 100000), 0):,.0f} exceeds typical range", "weight": 20}
+            ]
+        
         alerts.append(Alert(
             id=f"ALT-{1000 + i}",
             type=alert_type,
@@ -116,7 +129,8 @@ def generate_alerts(count: int = 20) -> list[Alert]:
             timestamp=timestamp.isoformat(),
             description=f"Suspicious activity detected for {ENTITY_NAMES[i % len(ENTITY_NAMES)]} involving transaction patterns consistent with {'known fraud schemes' if alert_type == 'high_risk' else 'atypical behavior'}.",
             indicators=random.sample(INDICATORS, num_indicators),
-            confidence=round(confidence, 2)
+            confidence=round(confidence, 2),
+            reasons=reasons
         ))
     
     return sorted(alerts, key=lambda x: x.timestamp, reverse=True)

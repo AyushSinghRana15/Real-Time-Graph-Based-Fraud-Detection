@@ -1,8 +1,9 @@
 from contextlib import asynccontextmanager
+import asyncio
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Literal, Optional
+from typing import Literal, Optional, Any
 from datetime import datetime
 from .mock_data import graph_state
 from .models import Alert
@@ -20,17 +21,33 @@ async def lifespan(app: FastAPI):
     print(f"ML Model available: {ml_service.is_available()}")
     print(f"Graph nodes: {len(graph_state.nodes)}, Edges: {len(graph_state.edges)}")
     
-    try:
-        print("Fetching live crypto data from CoinGecko...")
-        transactions_cache.extend(await crypto_service.get_transactions_for_fraud_detection(100))
-        alerts_cache.extend(crypto_service.generate_alerts_from_transactions(transactions_cache))
-        print(f"Loaded {len(transactions_cache)} transactions, {len(alerts_cache)} alerts")
-    except Exception as e:
-        print(f"Warning: Could not fetch live data: {e}")
-        print("Using fallback mock data")
-        from .mock_data import MOCK_ALERTS
-        alerts_cache.extend(MOCK_ALERTS)
+    # Initialize with mock data first to ensure instant startup
+    from .mock_data import MOCK_ALERTS
+    alerts_cache.extend(MOCK_ALERTS)
     
+    # Run live data fetch in background to avoid blocking the server startup
+    async def fetch_background_data():
+        try:
+            print("Background: Fetching live crypto data from CoinGecko...")
+            live_transactions = await crypto_service.get_transactions_for_fraud_detection(50)
+            if live_transactions:
+                transactions_cache.clear()
+                transactions_cache.extend(live_transactions)
+                raw_alerts = crypto_service.generate_alerts_from_transactions(live_transactions)
+                
+                # Update cache with valid Pydantic objects
+                alerts_cache.clear()
+                alerts_cache.extend([Alert(**a) for a in raw_alerts])
+                print(f"Background: Loaded {len(transactions_cache)} live transactions, {len(alerts_cache)} alerts")
+            else:
+                print("Background: No live transactions received. Keeping mock data.")
+        except Exception as e:
+            import traceback
+            print(f"Background Warning: Could not fetch live data: {e}")
+            traceback.print_exc()
+            print("Keeping mock data as fallback.")
+
+    asyncio.create_task(fetch_background_data())
     yield
     
     await crypto_service.close()
@@ -90,15 +107,16 @@ def health_check():
 @app.get("/api/alerts", response_model=list[dict])
 def get_alerts():
     if alerts_cache:
-        return alerts_cache
+        return [alert.model_dump() if hasattr(alert, 'model_dump') else alert for alert in alerts_cache]
     from .mock_data import MOCK_ALERTS
-    return MOCK_ALERTS
+    return [alert.model_dump() for alert in MOCK_ALERTS]
 
 
 @app.get("/api/alerts/{alert_id}")
 def get_alert(alert_id: str):
     for alert in alerts_cache:
-        if alert.id == alert_id:
+        alert_id_val = alert.id if hasattr(alert, 'id') else alert.get('id')
+        if alert_id_val == alert_id:
             return alert
     from .mock_data import MOCK_ALERTS
     for alert in MOCK_ALERTS:
@@ -156,13 +174,16 @@ async def refresh_live_data():
     
     try:
         transactions_cache.extend(await crypto_service.get_transactions_for_fraud_detection(100))
-        alerts_cache.extend(crypto_service.generate_alerts_from_transactions(transactions_cache))
+        raw_alerts = crypto_service.generate_alerts_from_transactions(transactions_cache)
+        alerts_cache.extend([Alert(**a) for a in raw_alerts])
         return {
             "status": "success",
             "transactions_loaded": len(transactions_cache),
             "alerts_generated": len(alerts_cache)
         }
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return {"status": "error", "message": str(e)}
 
 
