@@ -123,30 +123,30 @@ export function FloatingAIPanel({ isSandboxMode = false }: FloatingAIPanelProps)
         >
           {/* Console Header */}
           <div 
-            className="px-6 py-4 flex items-center justify-between"
+            className="px-8 py-5 flex items-center justify-between"
             style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
           >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.2)' }}>
-                <Zap className="w-5 h-5" style={{ color: '#a855f7' }} />
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.2)' }}>
+                <Zap className="w-6 h-6" style={{ color: '#a855f7' }} />
               </div>
               <div>
-                <h3 className="text-sm font-semibold" style={{ color: '#fafafa' }}>Neural Analysis Console</h3>
-                <p className="text-xs" style={{ color: '#71717a' }}>Hybrid ML + LLM Intelligence</p>
+                <h3 className="text-base font-semibold" style={{ color: '#fafafa' }}>Neural Analysis Console</h3>
+                <p className="text-sm" style={{ color: '#71717a' }}>Hybrid ML + LLM Intelligence</p>
               </div>
             </div>
             
             {/* Tab Switcher */}
-            <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
+            <div className="flex items-center gap-1 p-1.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
               <button
                 onClick={() => setActiveTab('ml')}
-                className="px-4 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-2"
+                className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2"
                 style={{
-                  background: activeTab === 'ml' ? 'rgba(139,92,246,0.2)' : 'transparent',
+                  background: activeTab === 'ml' ? 'rgba(139,92,246,0.25)' : 'transparent',
                   color: activeTab === 'ml' ? '#a855f7' : '#71717a',
                 }}
               >
-                <FlaskConical className="w-3.5 h-3.5" />
+                <FlaskConical className="w-4 h-4" />
                 ML Diagnostics
               </button>
               <button
@@ -155,13 +155,13 @@ export function FloatingAIPanel({ isSandboxMode = false }: FloatingAIPanelProps)
                   if (hasPrediction && !advice) handleGetAdvice();
                 }}
                 disabled={!hasPrediction}
-                className="px-4 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-2 disabled:opacity-40"
+                className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 disabled:opacity-40"
                 style={{
-                  background: activeTab === 'advice' ? 'rgba(139,92,246,0.2)' : 'transparent',
+                  background: activeTab === 'advice' ? 'rgba(139,92,246,0.25)' : 'transparent',
                   color: activeTab === 'advice' ? '#a855f7' : '#71717a',
                 }}
               >
-                <FileText className="w-3.5 h-3.5" />
+                <FileText className="w-4 h-4" />
                 LLM Advice
               </button>
             </div>
