@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Bell, Settings, User } from 'lucide-react';
 
-export const NAV_ITEMS = ['Dashboard', 'Network', 'Registry', 'Archived'] as const;
+export const NAV_ITEMS = ['Dashboard', 'Network', 'Sandbox', 'Archived'] as const;
 export type NavItem = typeof NAV_ITEMS[number];
 
 export function TopNavBar({ activeNav, onNavChange, onOpenSettings, onOpenProfile }: { activeNav: NavItem; onNavChange: (n: NavItem) => void; onOpenSettings: () => void; onOpenProfile: () => void }) {
