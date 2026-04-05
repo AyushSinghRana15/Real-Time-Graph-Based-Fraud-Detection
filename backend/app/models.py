@@ -11,6 +11,7 @@ class Alert(BaseModel):
     description: str
     indicators: list[str]
     confidence: float
+    reasons: Optional[list[dict]] = None
 
 class TransactionNode(BaseModel):
     id: str
