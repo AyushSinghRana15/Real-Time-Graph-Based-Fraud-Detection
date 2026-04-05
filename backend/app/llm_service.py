@@ -23,7 +23,8 @@ Format your response as:
 Keep total response under 200 words."""
 
 def generate_advice(transaction_data: dict, ml_result: dict) -> str:
-    if not OPENROUTER_API_KEY:
+    if not OPENROUTER_API_KEY or OPENROUTER_API_KEY.startswith("sk-or-v1-YOUR"):
+        print("No valid OpenRouter API key found, using mock advice")
         return generate_mock_advice(transaction_data, ml_result)
     
     try:
@@ -33,6 +34,9 @@ def generate_advice(transaction_data: dict, ml_result: dict) -> str:
             api_key=OPENROUTER_API_KEY,
             base_url=OPENROUTER_BASE_URL,
         )
+        
+        if not OPENROUTER_API_KEY.strip():
+            return generate_mock_advice(transaction_data, ml_result)
         
         sender = transaction_data.get("sender_id", "Unknown")
         receiver = transaction_data.get("receiver_id", "Unknown")
@@ -81,7 +85,11 @@ Provide your forensic analysis following the standard format."""
         return response.choices[0].message.content
         
     except Exception as e:
-        print(f"OpenRouter API error: {e}")
+        error_str = str(e).lower()
+        if "401" in error_str or "user not found" in error_str or "invalid" in error_str:
+            print(f"OpenRouter API key invalid, using mock advice")
+        else:
+            print(f"OpenRouter API error: {e}")
         return generate_mock_advice(transaction_data, ml_result)
 
 

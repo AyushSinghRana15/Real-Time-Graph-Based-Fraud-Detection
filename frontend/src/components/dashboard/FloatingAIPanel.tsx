@@ -13,6 +13,7 @@ interface GraphMetrics {
   clustering: number;
   cycle_detected: boolean;
   base_confidence: number;
+  amount_boost?: number;
 }
 
 interface PredictionResult {
@@ -388,6 +389,19 @@ export function FloatingAIPanel({ isSandboxMode = false }: FloatingAIPanelProps)
                                   +{prediction.graph_metrics.clustering_boost}%
                                 </span>
                               </div>
+                            )}
+                            
+                            {(prediction.graph_metrics.amount_boost ?? 0) > 0 && (
+                              <motion.div 
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                className="flex items-center justify-between text-sm"
+                              >
+                                <span style={{ color: '#ef4444' }}>Anomaly: Extreme Amount</span>
+                                <span className="font-mono font-bold" style={{ color: '#ef4444' }}>
+                                  +{prediction.graph_metrics.amount_boost}% 💸
+                                </span>
+                              </motion.div>
                             )}
                             
                             {prediction.graph_metrics.cycle_detected && (
@@ -793,6 +807,19 @@ export function FloatingAIPanel({ isSandboxMode = false }: FloatingAIPanelProps)
                           <span style={{ color: '#ef4444' }}>Cycle Ring Detected</span>
                           <span className="font-mono font-bold" style={{ color: '#ef4444' }}>
                             +{prediction.graph_metrics.cycle_boost}% 🔁
+                          </span>
+                        </motion.div>
+                      )}
+                      
+                      {(prediction.graph_metrics.amount_boost ?? 0) > 0 && (
+                        <motion.div 
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="flex items-center justify-between text-xs"
+                        >
+                          <span style={{ color: '#ef4444' }}>Extreme Amount</span>
+                          <span className="font-mono font-bold" style={{ color: '#ef4444' }}>
+                            +{prediction.graph_metrics.amount_boost}% 💸
                           </span>
                         </motion.div>
                       )}

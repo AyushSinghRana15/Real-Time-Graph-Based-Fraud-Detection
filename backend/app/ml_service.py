@@ -51,7 +51,17 @@ class MLService:
 
         ml_prob = self._get_ml_probability(transaction_data)
         graph_metrics = self._calculate_graph_metrics(sender, receiver)
-        final_probability = min(99.9, ml_prob + graph_metrics["total_boost"])
+        
+        # Heavy Flat Sum Override
+        amount_boost = 0.0
+        if amount > 10_000_000:
+            amount_boost = 40.0
+        elif amount > 1_000_000:
+            amount_boost = 20.0
+        elif amount > 250_000:
+            amount_boost = 10.0
+            
+        final_probability = min(99.9, ml_prob + graph_metrics["total_boost"] + amount_boost)
         is_fraud = final_probability >= 70
 
         risk = int(final_probability)
@@ -60,6 +70,10 @@ class MLService:
         self.graph.add_node(sender, label=sender, type="account")
         self.graph.add_node(receiver, label=receiver, type="account")
         self.graph.add_edge(sender, receiver, amount=amount)
+
+        # Update metrics to include amount boost
+        graph_metrics["amount_boost"] = amount_boost
+        graph_metrics["total_boost"] = round(graph_metrics["total_boost"] + amount_boost, 1)
 
         return {
             "is_fraud": is_fraud,
@@ -114,7 +128,6 @@ class MLService:
         )
         if new_edge_creates_cycle:
             cycle_boost = 30.0
-        
         return {
             "degree_boost": round(degree_boost, 1),
             "clustering_boost": round(clustering_boost, 1),
