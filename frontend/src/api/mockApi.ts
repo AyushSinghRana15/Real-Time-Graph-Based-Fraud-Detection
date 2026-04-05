@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import type { Alert, GraphData, MetricData, PredictionResult, VelocityPoint } from '../types';
+import type { Alert, GraphData, MetricData, PredictionResult, VelocityPoint, TransactionNode } from '../types';
 
 faker.seed(42);
 
@@ -10,7 +10,7 @@ const RISK_SCENARIOS = [
   { title: 'Synthetic Identity', verdict: 'New account with fabricated history markers. Email domain associated with 23 flagged entities. Initial transactions below AML thresholds.', actions: ['enhanced_kyc', 'link_analysis'] },
   { title: 'Collusion Network', verdict: 'Merchant-account loop with circular transactions inflating volume. 12 entities form closed payment loop siphoning $2.3M annually.', actions: ['network_analysis', 'legal_hold'] },
   { title: 'Mule Account Activity', verdict: 'High-velocity transfers with immediate withdrawal patterns. Consistent with money mule behavior profile. 94% confidence.', actions: ['contact_account_holder', 'limit_transfers'] },
-  { title: 'Bust-Out Fraud', verdict: 'Long信用 history followed by rapid credit utilization and disappearing payments. Pre-bankruptcy fraud pattern detected.', actions: ['freeze_credit', 'collections_prep'] },
+  { title: 'Bust-Out Fraud', verdict: 'Long credit history followed by rapid credit utilization and disappearing payments. Pre-bankruptcy fraud pattern detected.', actions: ['freeze_credit', 'collections_prep'] },
   { title: 'API Exploitation', verdict: 'Automated scraping detected. Rate limiting bypass attempts. 15,000 requests/minute from distributed botnet.', actions: ['rate_limit', 'ip_block'] },
   { title: 'Friendly Fraud', verdict: 'Chargeback pattern from verified customer. False claims detected via device fingerprint correlation with dispute history.', actions: ['manual_review', 'fraud_report'] },
   { title: 'Cross-Border Smurfing', verdict: 'Multiple small transactions below reporting thresholds from foreign accounts. Geographic velocity impossible for human operators.', actions: ['ctr_filing', 'geolocation_review'] },
@@ -48,8 +48,11 @@ function generateAlert(): Alert {
   };
 }
 
-function generateNode(index: number): import('../types').TransactionNode {
+function generateNode(index: number, baseTime: number): TransactionNode {
   const riskScore = generateRiskScore();
+  const timeOffset = faker.number.int({ min: 0, max: 24 * 60 * 60 * 1000 });
+  const nodeTime = baseTime - timeOffset;
+  
   return {
     id: `node_${index}`,
     type: faker.helpers.arrayElement(ENTITY_TYPES),
@@ -57,24 +60,27 @@ function generateNode(index: number): import('../types').TransactionNode {
     riskScore,
     transactionCount: faker.number.int({ min: 10, max: 10000 }),
     totalVolume: faker.number.float({ min: 1000, max: 10000000, fractionDigits: 2 }),
-    firstSeen: faker.date.past({ years: 2 }).toISOString(),
-    lastSeen: faker.date.recent({ days: 7 }).toISOString(),
+    firstSeen: new Date(nodeTime - faker.number.int({ min: 7, max: 30 }) * 24 * 60 * 60 * 1000).toISOString(),
+    lastSeen: new Date(nodeTime - faker.number.int({ min: 0, max: 24 * 60 * 60 * 1000 })).toISOString(),
     country: faker.helpers.arrayElement(COUNTRIES),
   };
 }
 
-function generateLink(nodes: import('../types').TransactionNode[]): import('../types').TransactionLink {
+function generateLink(nodes: TransactionNode[], baseTime: number): import('../types').TransactionLink {
   const source = faker.helpers.arrayElement(nodes);
   let target = faker.helpers.arrayElement(nodes);
   while (target.id === source.id) {
     target = faker.helpers.arrayElement(nodes);
   }
+  
+  const timeOffset = faker.number.int({ min: 0, max: 24 * 60 * 60 * 1000 });
+  
   return {
     source: source.id,
     target: target.id,
     transactionId: `TXN-${faker.string.alphanumeric(10).toUpperCase()}`,
     amount: faker.number.float({ min: 10, max: 50000, fractionDigits: 2 }),
-    timestamp: faker.date.recent({ days: 2 }).toISOString(),
+    timestamp: new Date(baseTime - timeOffset).toISOString(),
     isFlagged: Math.random() < 0.3,
   };
 }
@@ -88,10 +94,11 @@ export async function fetchAlerts(): Promise<Alert[]> {
 
 export async function fetchSubgraph(_entityId: string): Promise<GraphData> {
   await new Promise(r => setTimeout(r, 200 + Math.random() * 400));
-  const nodeCount = faker.number.int({ min: 20, max: 50 });
-  const nodes = Array.from({ length: nodeCount }, (_, i) => generateNode(i));
+  const baseTime = Date.now();
+  const nodeCount = faker.number.int({ min: 30, max: 50 });
+  const nodes = Array.from({ length: nodeCount }, (_, i) => generateNode(i, baseTime));
   const linkCount = faker.number.int({ min: nodeCount, max: nodeCount * 2 });
-  const links = Array.from({ length: linkCount }, () => generateLink(nodes));
+  const links = Array.from({ length: linkCount }, () => generateLink(nodes, baseTime));
   return { nodes, links };
 }
 
