@@ -6,6 +6,8 @@ load_dotenv()
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
+print(f"OpenRouter API Key loaded: {OPENROUTER_API_KEY[:20]}..." if OPENROUTER_API_KEY else "No API key found")
+
 SYSTEM_PROMPT = """You are a Senior Financial Forensic Analyst with 20 years of experience in anti-money laundering (AML) and fraud detection. You provide clear, actionable intelligence for compliance teams.
 
 Your analysis should be:
