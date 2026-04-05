@@ -7,6 +7,7 @@ from datetime import datetime
 from .mock_data import MOCK_ALERTS, graph_state
 from .models import Alert
 from .ml_service import ml_service
+from .llm_service import generate_advice
 
 
 @asynccontextmanager
@@ -48,6 +49,11 @@ class PredictionResult(BaseModel):
     recommendation: str
     graph_metrics: dict
     transaction: dict
+
+
+class AdviceRequest(BaseModel):
+    transaction: dict
+    ml_result: dict
 
 
 @app.get("/health")
@@ -102,6 +108,12 @@ def predict_fraud(transaction: TransactionPredict):
     transaction_dict = transaction.model_dump()
     result = ml_service.predict(transaction_dict)
     return result
+
+
+@app.post("/api/advice")
+def get_advice(request: AdviceRequest):
+    advice = generate_advice(request.transaction, request.ml_result)
+    return {"advice": advice}
 
 
 if __name__ == "__main__":
