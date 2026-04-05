@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { DashboardPage } from './pages/DashboardPage';
+import { LoginPage } from './pages/LoginPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -11,9 +13,15 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  const [authenticated, setAuthenticated] = useState(false);
+
   return (
     <QueryClientProvider client={queryClient}>
-      <DashboardPage />
+      {authenticated ? (
+        <DashboardPage />
+      ) : (
+        <LoginPage onLogin={() => setAuthenticated(true)} />
+      )}
     </QueryClientProvider>
   );
 }
