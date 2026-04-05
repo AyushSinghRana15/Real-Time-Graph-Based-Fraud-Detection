@@ -1,16 +1,14 @@
 import { useState, useCallback, useEffect } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { useAlerts } from '../hooks/useFraudDetection';
 import type { Alert, TransactionNode } from '../types';
-import { TopNavBar, NAV_ITEMS } from '../components/dashboard/TopNavBar';
-import { KPIDock } from '../components/dashboard/KPIDock';
+import { HUDHeader, NAV_ITEMS } from '../components/dashboard/HUDHeader';
 import { GraphCanvas } from '../components/dashboard/GraphCanvas';
-import { FloatingAlertSidebar } from '../components/dashboard/FloatingAlertSidebar';
-import { FloatingContextPanel } from '../components/dashboard/FloatingContextPanel';
-import { FloatingLegend } from '../components/dashboard/FloatingLegend';
-import { FloatingAIPanel } from '../components/dashboard/FloatingAIPanel';
+import { HUDSidebar } from '../components/dashboard/HUDSidebar';
+import { HUDContextPanel } from '../components/dashboard/HUDContextPanel';
+import { FocusSandbox } from '../components/dashboard/FocusSandbox';
 import { SettingsOverlay } from '../components/dashboard/SettingsOverlay';
 import { UserProfileOverlay } from '../components/dashboard/UserProfileOverlay';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 type NavItem = typeof NAV_ITEMS[number];
 
@@ -20,8 +18,11 @@ export function DashboardPage({ onLogout }: { onLogout: () => void }) {
   const [activeNav, setActiveNav] = useState<NavItem>('Dashboard');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isContextCollapsed, setIsContextCollapsed] = useState(true);
 
   const isSandboxMode = activeNav === 'Sandbox';
+  const highRiskCount = alerts.filter(a => a.type === 'high_risk').length;
 
   const handleNodeClick = useCallback((node: TransactionNode) => {
     const a = alerts.find(al => al.entityId === node.id);
@@ -35,61 +36,56 @@ export function DashboardPage({ onLogout }: { onLogout: () => void }) {
     }
   }, [alerts, selectedAlert, isSandboxMode]);
 
+  useEffect(() => {
+    if (selectedAlert) {
+      setIsContextCollapsed(false);
+    }
+  }, [selectedAlert]);
+
   return (
-    <div className="h-screen w-screen overflow-hidden" style={{ background: '#09090b' }}>
+    <div className="h-screen w-screen overflow-hidden relative" style={{ background: '#09090b' }}>
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-grid opacity-20 pointer-events-none" />
-        <GraphCanvas entityId={selectedAlert?.entityId ?? null} onNodeClick={handleNodeClick} />
+        <ErrorBoundary>
+          <GraphCanvas entityId={selectedAlert?.entityId ?? null} onNodeClick={handleNodeClick} />
+        </ErrorBoundary>
       </div>
 
-      <TopNavBar 
-        activeNav={activeNav} 
-        onNavChange={setActiveNav} 
+      <HUDHeader
+        activeNav={activeNav}
+        onNavChange={setActiveNav}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenProfile={() => setIsProfileOpen(true)}
+        highRiskCount={highRiskCount}
       />
 
-      <AnimatePresence mode="wait">
-        {isSandboxMode ? (
-          <motion.div
-            key="sandbox"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 flex items-center justify-center pointer-events-none"
-          >
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="space-y-2"
-              >
-                <h1 className="text-4xl font-bold tracking-tight" style={{ color: '#fafafa', fontFamily: 'Space Grotesk, sans-serif' }}>
-                  Neural Sandbox
-                </h1>
-                <p className="text-sm" style={{ color: '#71717a' }}>
-                  Simulate transactions and analyze fraud patterns in real-time
-                </p>
-              </motion.div>
-            </div>
-          </motion.div>
-        ) : (
-          <>
-            <KPIDock />
-            <FloatingAlertSidebar alerts={alerts} selectedId={selectedAlert?.id ?? null} onSelect={setSelectedAlert} />
-            <FloatingLegend />
-          </>
-        )}
-      </AnimatePresence>
-      
-      <AnimatePresence>
-        {selectedAlert && !isSandboxMode && (
-          <FloatingContextPanel alert={selectedAlert} onClose={() => setSelectedAlert(null)} />
-        )}
-      </AnimatePresence>
+      {!isSandboxMode && (
+        <>
+          <HUDSidebar
+            alerts={alerts}
+            selectedId={selectedAlert?.id ?? null}
+            onSelect={setSelectedAlert}
+            isCollapsed={isSidebarCollapsed}
+            onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            side="left"
+          />
 
-      <FloatingAIPanel isSandboxMode={isSandboxMode} />
+          {selectedAlert && (
+            <HUDContextPanel
+              alert={selectedAlert}
+              onClose={() => setSelectedAlert(null)}
+              isCollapsed={isContextCollapsed}
+              onToggle={() => setIsContextCollapsed(!isContextCollapsed)}
+            />
+          )}
+        </>
+      )}
+
+      <FocusSandbox 
+        isActive={isSandboxMode} 
+        onClose={() => setActiveNav('Dashboard')}
+        defaultAlert={selectedAlert ? { entityId: selectedAlert.entityId, entityName: selectedAlert.entityName, amount: selectedAlert.amount } : null}
+      />
 
       <SettingsOverlay isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
       <UserProfileOverlay isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} onLogout={onLogout} />

@@ -20,6 +20,12 @@ export interface GraphData {
   links: TransactionLink[];
 }
 
+export interface AlertReason {
+  factor: string;
+  detail: string;
+  weight: number;
+}
+
 export interface Alert {
   id: string;
   type: 'high_risk' | 'medium_risk' | 'low_risk' | 'info';
@@ -30,6 +36,7 @@ export interface Alert {
   description: string;
   indicators: string[];
   confidence: number;
+  reasons?: AlertReason[];
 }
 
 export interface MetricData {

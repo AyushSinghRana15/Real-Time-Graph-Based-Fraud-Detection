@@ -75,12 +75,15 @@ class MLService:
         graph_metrics["amount_boost"] = amount_boost
         graph_metrics["total_boost"] = round(graph_metrics["total_boost"] + amount_boost, 1)
 
+        reasons = self._generate_reasons(transaction_data, ml_prob, graph_metrics)
+        
         return {
             "is_fraud": is_fraud,
             "fraud_probability": round(final_probability, 2),
             "confidence": round(max(ml_prob, graph_metrics["base_confidence"]) * 100 / final_probability if final_probability > 0 else 0, 2),
             "risk_level": self._get_risk_level(final_probability),
             "recommendation": "block" if is_fraud else "allow",
+            "reasons": reasons,
             "graph_metrics": graph_metrics,
             "transaction": {
                 "sender": sender,
@@ -103,8 +106,14 @@ class MLService:
         clustering_boost = 0.0
         cycle_boost = 0.0
         
-        sender_degree = self.graph.out_degree(sender) + self.graph.in_degree(sender)
-        receiver_degree = self.graph.out_degree(receiver) + self.graph.in_degree(receiver)
+        if sender in self.graph:
+            sender_degree = self.graph.out_degree(sender) + self.graph.in_degree(sender)
+        else:
+            sender_degree = 0
+        if receiver in self.graph:
+            receiver_degree = self.graph.out_degree(receiver) + self.graph.in_degree(receiver)
+        else:
+            receiver_degree = 0
         max_degree = max(sender_degree, receiver_degree)
         
         if max_degree > 5:
@@ -168,6 +177,36 @@ class MLService:
         df = pd.DataFrame(features)
         return df[self.feature_columns]
 
+    def _generate_reasons(self, data: dict, ml_prob: float, graph_metrics: dict) -> list:
+        reasons = []
+        
+        amount = data.get("amount", 0)
+        if amount > 10_000_000:
+            reasons.append({"factor": "Amount Anomaly", "detail": f"${amount:,.0f} exceeds $10M threshold", "weight": 40})
+        elif amount > 1_000_000:
+            reasons.append({"factor": "Amount Anomaly", "detail": f"${amount:,.0f} exceeds $1M threshold", "weight": 20})
+        elif amount > 250_000:
+            reasons.append({"factor": "Large Transaction", "detail": f"${amount:,.0f} exceeds $250K", "weight": 10})
+            
+        if graph_metrics.get("cycle_detected"):
+            reasons.append({"factor": "Graph Cycle", "detail": "Circular fund flow detected", "weight": 30})
+            
+        if graph_metrics.get("degree_boost", 0) >= 10:
+            reasons.append({"factor": "High Degree Node", "detail": f"Degree {graph_metrics.get('degree')} exceeds hub threshold", "weight": 10})
+        elif graph_metrics.get("degree_boost", 0) >= 5:
+            reasons.append({"factor": "Elevated Degree", "detail": f"Degree {graph_metrics.get('degree')} above average", "weight": 5})
+            
+        if graph_metrics.get("clustering_boost", 0) >= 10:
+            reasons.append({"factor": "Dense Cluster", "detail": f"{graph_metrics.get('clustering')}% clustering - fraud ring pattern", "weight": 10})
+            
+        if ml_prob > 70:
+            reasons.append({"factor": "ML Model Alert", "detail": f"{ml_prob:.1f}% probability from trained model", "weight": ml_prob * 0.7})
+        elif ml_prob > 50:
+            reasons.append({"factor": "ML Model Flag", "detail": f"{ml_prob:.1f}% model suspicion", "weight": ml_prob * 0.5})
+            
+        reasons.sort(key=lambda x: x["weight"], reverse=True)
+        return reasons[:3]
+    
     def _get_risk_level(self, fraud_prob: float) -> str:
         if fraud_prob >= 75:
             return "critical"

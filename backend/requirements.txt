@@ -7,5 +7,4 @@ xgboost>=2.0.0
 networkx>=3.0
 openai>=1.10.0
 python-dotenv>=1.0.0
-python-dotenv>=1.0.0
-openai>=1.0.0
+httpx>=0.26.0

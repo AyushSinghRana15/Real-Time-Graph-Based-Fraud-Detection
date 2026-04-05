@@ -1,103 +1,165 @@
-# Real-Time Graph-Based Fraud Detection
+# Forensic Lens - Fraud Detection Command Center
 
-A high-precision AI system for detecting fraudulent entities and suspicious transaction patterns in near real-time using graph-based analysis.
+A premium enterprise-grade fraud detection system with a structured "Command Center" layout. Combines ML predictions, graph intelligence, and LLM-powered investigation in an immersive 3D visualization interface.
 
-## Problem Statement
+## Architecture
 
-Financial fraud often occurs through coordinated transaction networks rather than isolated events. Traditional detection methods struggle to identify complex relationships and patterns within these networks.
+### Frontend - Command Center Layout
 
-## Objective
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         COMMAND HEADER                               │
+│  [Logo] [Live] │ Dashboard │ Network │ Sandbox │ Archived  │ [KPIs] [User] │
+├──────────────┬──────────────────────────────────────┬───────────────┤
+│              │                                      │               │
+│   ALERT      │                                      │   CONTEXT     │
+│   FEED       │          3D GRAPH CANVAS            │   PANEL       │
+│              │                                      │               │
+│  - Critical  │     ┌─────────────────────┐         │  - Entity     │
+│  - Suspicious│     │    ForceGraph3D    │         │  - Confidence │
+│  - Review    │     │   Transaction Net  │         │  - Reasons    │
+│              │     └─────────────────────┘         │  - Actions    │
+│              │                                      │               │
+└──────────────┴──────────────────────────────────────┴───────────────┘
+```
 
-Build a high-precision fraud detection model that identifies anomalous network behavior while minimizing false positives.
+### Backend - Hybrid Inference Engine
 
-## Key Features
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     FastAPI Backend                          │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐  │
+│  │ ML Service  │ │ LLM Service │ │  Graph Service      │  │
+│  │  (XGBoost)  │ │ (OpenRouter)│ │   (NetworkX)        │  │
+│  └─────────────┘ └─────────────┘ └─────────────────────┘  │
+│        │               │                   │                 │
+│        ▼               ▼                   ▼                 │
+│  ┌─────────┐    ┌───────────┐      ┌────────────┐        │
+│  │ model.pkl│   │ OpenRouter│      │  DiGraph   │        │
+│  │(16 feats)│   │   API     │      │(cycle det) │        │
+│  └─────────┘    └───────────┘      └────────────┘        │
+│        │                                 │                  │
+│        └─────────────┬───────────────────┘                  │
+│                      ▼                                       │
+│              ┌─────────────────┐                             │
+│              │  Risk Reasons   │                             │
+│              │  Justification  │                             │
+│              └─────────────────┘                             │
+└─────────────────────────────────────────────────────────────┘
+```
 
-- [ ] Real-time transaction graph analysis
-- [ ] Graph-based anomaly detection algorithms
-- [ ] Coordinated fraud ring identification
-- [ ] Risk scoring and prioritization
-- [ ] Near real-time inference pipeline
-- [ ] Visual graph exploration dashboard
+## Features
+
+### Command Center Layout
+- **Pinned Alert Feed** - Left glass pillar with categorized alerts (Critical/Suspicious/Review)
+- **3D Graph Canvas** - Full-bleed immersive transaction network visualization
+- **Context Panel** - Right column with entity details, risk justification, and action buttons
+- **Command Header** - Integrated navigation + KPIs in cohesive header bar
+
+### Hybrid Intelligence
+- **XGBoost ML** - Pre-trained fraud detection model with 16 features
+- **Graph Analysis** - NetworkX for cycle detection, clustering, degree centrality
+- **LLM Forensics** - OpenRouter-powered investigation and analysis reports
+
+### Risk Justification
+Each alert displays top 3 contributing factors with:
+- Semantic naming (Amount Anomaly, Graph Cycle, High Risk Account)
+- Weight bars showing relative importance
+- Detailed explanations for compliance review
+
+### Neural Sandbox (Focus Mode)
+Full-screen workspace when in Sandbox tab:
+- LLM Chat interface for forensic analysis
+- ML Diagnostics with feature importance charts
+- Quick actions for simulation and analysis
+
+### Live Data
+- Fetches real-time crypto transaction data from CoinGecko API
+- Generates risk indicators based on transaction patterns
+- `/api/refresh-data` endpoint for manual refresh
 
 ## Tech Stack
 
-| Component | Technology |
-|-----------|------------|
-| Backend | Python, FastAPI |
-| Graph Database | Neo4j / NetworkX |
-| ML/AI | PyTorch Geometric, Graph Neural Networks |
-| Streaming | Apache Kafka / Redis Streams |
-| Database | PostgreSQL |
-| Frontend | React, D3.js (graph visualization) |
-| Containerization | Docker, Kubernetes |
+| Layer | Technology |
+|-------|------------|
+| Frontend | React, Vite, Framer Motion, Three.js (ForceGraph3D) |
+| Backend | FastAPI, Python 3.10+ |
+| ML | XGBoost, scikit-learn |
+| Graph | NetworkX (cycle detection, clustering) |
+| LLM | OpenRouter API (claude-3-haiku) |
+| Data | CoinGecko API (live crypto data) |
 
-## Project Structure
+## API Endpoints
 
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/predict` | POST | Hybrid ML + Graph fraud prediction |
+| `/api/advice` | POST | LLM forensic analysis |
+| `/api/alerts` | GET | Recent fraud alerts (from CoinGecko) |
+| `/api/transactions` | GET | Live crypto transactions |
+| `/api/nodes` | GET | Graph nodes |
+| `/api/edges` | GET | Graph edges |
+| `/api/graph/state` | GET | Full graph state |
+| `/api/refresh-data` | POST | Refresh live data from CoinGecko |
+| `/health` | GET | Health check |
+
+## Prediction Engine
+
+### Hybrid Scoring Formula
 ```
-Real-Time-Graph-Based-Fraud-Detection/
-├── data/                  # Dataset storage
-├── src/
-│   ├── api/              # FastAPI endpoints
-│   ├── models/           # ML/GNN models
-│   ├── graph/            # Graph processing logic
-│   ├── streaming/        # Real-time data pipeline
-│   └── utils/            # Helper functions
-├── notebooks/            # Jupyter notebooks for EDA
-├── tests/                # Unit and integration tests
-├── config/               # Configuration files
-├── README.md
-└── requirements.txt
+final_score = ml_probability * 0.7 + graph_boost * 0.3 + amount_boost
 ```
+
+### Graph Boosts
+| Condition | Boost |
+|-----------|-------|
+| Degree > 3 | +5% |
+| Degree > 5 | +10% |
+| Clustering > 0.4 | +10% |
+| Cycle Detected | +30% |
+
+### Amount Thresholds
+| Amount | Boost |
+|--------|-------|
+| > $250K | +10% |
+| > $1M | +20% |
+| > $10M | +40% |
+
+### Fraud Threshold
+Score ≥ 70% triggers high-risk alert.
 
 ## Getting Started
 
 ### Prerequisites
-
+- Node.js 18+
 - Python 3.10+
-- Neo4j (optional, for graph database)
-- Docker & Docker Compose
+- OpenRouter API key
 
-### Installation
+### Backend Setup
 
 ```bash
-# Clone the repository
-git clone https://github.com/AyushSinghRana15/Real-Time-Graph-Based-Fraud-Detection.git
-cd Real-Time-Graph-Based-Fraud-Detection
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
+cd backend
+cp .env.example .env  # Add your OPENROUTER_API_KEY
 pip install -r requirements.txt
+uvicorn app.main:app --reload --port 3001
 ```
 
-## Usage
+### Frontend Setup
 
 ```bash
-# Run the API server
-uvicorn src.api.main:app --reload
-
-# Run graph processing pipeline
-python -m src.streaming.pipeline
+cd frontend
+npm install
+npm run dev
 ```
 
-## Model Architecture
+### Model Files
+Place trained model files in:
+- `backend/Model/model.pkl` - XGBoost model
+- `backend/Model/columns.pkl` - Feature column names
 
-> _To be documented as the model evolves_
+## Environment Variables
 
-## Evaluation Metrics
-
-- Precision
-- Recall
-- F1 Score
-- ROC-AUC
-- False Positive Rate
-
-## Contributing
-
-Contributions are welcome! Please read the contribution guidelines before submitting PRs.
-
-## License
-
-MIT License
+```bash
+# backend/.env
+OPENROUTER_API_KEY=sk-or-v1-...
+```

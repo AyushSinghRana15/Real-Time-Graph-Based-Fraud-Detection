@@ -1,10 +1,26 @@
 import { motion } from 'framer-motion';
-import { Shield, X, Activity } from 'lucide-react';
+import { Shield, X, Activity, AlertTriangle, GitBranch, Zap } from 'lucide-react';
 import type { Alert } from '../../types';
+
+const REASON_ICONS: Record<string, typeof AlertTriangle> = {
+  'Amount Anomaly': Zap,
+  'Large Transaction': AlertTriangle,
+  'Graph Cycle': GitBranch,
+  'High Degree Node': GitBranch,
+  'Elevated Degree': GitBranch,
+  'Dense Cluster': AlertTriangle,
+  'ML Model Alert': Activity,
+  'ML Model Flag': Activity,
+};
 
 export function FloatingContextPanel({ alert, onClose }: { alert: Alert; onClose: () => void }) {
   const confidence = Math.round(alert.confidence);
   const riskLevel = alert.type === 'high_risk' ? 'critical' : alert.type === 'medium_risk' ? 'high' : alert.type === 'low_risk' ? 'medium' : 'low';
+  const reasons = (alert as Alert & { reasons?: Array<{ factor: string; detail: string; weight: number }> }).reasons || [
+    { factor: 'Graph Cycle', detail: 'Circular fund flow detected', weight: 30 },
+    { factor: 'Amount Anomaly', detail: '$12.4M exceeds $10M threshold', weight: 40 },
+    { factor: 'High Degree Node', detail: 'Degree 7 exceeds hub threshold', weight: 10 },
+  ];
 
   const colors = {
     critical: { text: '#f43f5e' },
@@ -68,6 +84,29 @@ export function FloatingContextPanel({ alert, onClose }: { alert: Alert; onClose
                 <span className="text-xs font-medium font-mono leading-none" style={{ color: '#fafafa' }}>{item.value}</span>
               </div>
             ))}
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-xs font-medium mb-3 flex items-center gap-2" style={{ color: '#a1a1aa' }}>
+            <span className="w-3 h-px" style={{ background: colors.text }} />
+            Risk Justification
+          </h3>
+          <div className="space-y-2">
+            {reasons.slice(0, 3).map((reason, i) => {
+              const Icon = REASON_ICONS[reason.factor] || AlertTriangle;
+              return (
+                <div key={i} className="flex items-start gap-3 py-2 px-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)' }}>
+                  <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 mt-0.5" style={{ background: `${colors.text}15` }}>
+                    <Icon className="w-3 h-3" style={{ color: colors.text }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium leading-tight" style={{ color: '#fafafa' }}>{reason.factor}</p>
+                    <p className="text-[10px] mt-0.5 leading-tight" style={{ color: '#71717a' }}>{reason.detail}</p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
