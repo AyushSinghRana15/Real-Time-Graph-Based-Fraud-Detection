@@ -58,9 +58,7 @@ export function DashboardPage({ onLogout }: { onLogout: () => void }) {
       
       <FloatingLegend />
 
-      <AnimatePresence>
-        <FloatingAIPanel alert={selectedAlert} />
-      </AnimatePresence>
+      <FloatingAIPanel />
 
       <SettingsOverlay isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
       <UserProfileOverlay isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} onLogout={onLogout} />

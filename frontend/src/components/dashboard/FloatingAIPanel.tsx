@@ -1,51 +1,70 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, ChevronDown, ChevronUp, Loader2, Sparkles } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import type { Alert } from '../../types';
+import { Brain, ChevronDown, ChevronUp, Loader2, Sparkles, Play, AlertTriangle } from 'lucide-react';
+import { useState } from 'react';
+import { riskColor } from '../../utils/colors';
 
-interface FloatingAIPanelProps {
-  alert: Alert | null;
+interface GraphMetrics {
+  degree_boost: number;
+  clustering_boost: number;
+  cycle_boost: number;
+  total_boost: number;
+  degree: number;
+  clustering: number;
+  cycle_detected: boolean;
+  base_confidence: number;
 }
 
-const ANALYSIS_TEMPLATE = [
-  "Initiating deep neural network analysis...",
-  "Scanning transaction graph topology...",
-  "Cross-referencing known fraud patterns...",
-  "Evaluating temporal anomaly score...",
-  "Computing behavioral deviation index...",
-  "Synthesizing risk correlation matrix...",
-  "Finalizing threat assessment...",
-];
+interface PredictionResult {
+  is_fraud: boolean;
+  fraud_probability: number;
+  confidence: number;
+  risk_level: string;
+  recommendation: string;
+  graph_metrics: GraphMetrics;
+  transaction: {
+    sender: string;
+    receiver: string;
+    amount: number;
+  };
+}
 
-export function FloatingAIPanel({ alert }: FloatingAIPanelProps) {
+const TRANSACTION_TYPES = ['TRANSFER', 'CASH_OUT', 'PAYMENT', 'CASH_IN', 'DEBIT'] as const;
+
+export function FloatingAIPanel() {
   const [isExpanded, setIsExpanded] = useState(true);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisLines, setAnalysisLines] = useState<string[]>([]);
-  const [riskScore, setRiskScore] = useState<number | null>(null);
+  const [prediction, setPrediction] = useState<PredictionResult | null>(null);
+  const [formData, setFormData] = useState({
+    sender_id: 'ENT-100',
+    receiver_id: 'ENT-102',
+    amount: 50000,
+    type: 'TRANSFER',
+    oldbalanceOrg: 100000,
+    newbalanceOrig: 50000,
+    oldbalanceDest: 0,
+    newbalanceDest: 50000,
+  });
 
-  useEffect(() => {
-    if (alert) {
-      setIsAnalyzing(true);
-      setAnalysisLines([]);
-      setRiskScore(null);
-
-      let lineIndex = 0;
-      const interval = setInterval(() => {
-        if (lineIndex < ANALYSIS_TEMPLATE.length) {
-          setAnalysisLines(prev => [...prev, ANALYSIS_TEMPLATE[lineIndex]]);
-          lineIndex++;
-        } else {
-          clearInterval(interval);
-          setIsAnalyzing(false);
-          setRiskScore(alert.type === 'high_risk' ? 94 : alert.type === 'medium_risk' ? 67 : alert.type === 'low_risk' ? 32 : 15);
-        }
-      }, 400);
-
-      return () => clearInterval(interval);
+  const handlePredict = async () => {
+    setIsAnalyzing(true);
+    setPrediction(null);
+    
+    try {
+      const response = await fetch('http://localhost:3001/api/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      const data = await response.json();
+      setPrediction(data);
+    } catch (error) {
+      console.error('Prediction failed:', error);
+    } finally {
+      setIsAnalyzing(false);
     }
-  }, [alert]);
+  };
 
-  if (!alert) return null;
+  const riskColorValue = prediction ? riskColor(prediction.fraud_probability / 100) : '#71717a';
 
   return (
     <motion.div
@@ -53,7 +72,7 @@ export function FloatingAIPanel({ alert }: FloatingAIPanelProps) {
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 50 }}
       transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-      className="fixed bottom-6 right-6 w-96 rounded-2xl overflow-hidden z-50"
+      className="fixed bottom-6 right-6 w-[420px] rounded-2xl overflow-hidden z-50"
       style={{ 
         background: 'rgba(9,9,11,0.92)', 
         backdropFilter: 'blur(40px)', 
@@ -72,8 +91,8 @@ export function FloatingAIPanel({ alert }: FloatingAIPanelProps) {
             <Brain className="w-4 h-4" style={{ color: '#8b5cf6' }} />
           </div>
           <div className="text-left">
-            <p className="text-sm font-semibold" style={{ color: '#fafafa' }}>AI Risk Analysis</p>
-            <p className="text-xs" style={{ color: '#71717a' }}>Real-time fraud detection</p>
+            <p className="text-sm font-semibold" style={{ color: '#fafafa' }}>Neural Sandbox</p>
+            <p className="text-xs" style={{ color: '#71717a' }}>Hybrid Graph ML Analysis</p>
           </div>
         </div>
         {isExpanded ? (
@@ -93,77 +112,241 @@ export function FloatingAIPanel({ alert }: FloatingAIPanelProps) {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="px-5 py-5 space-y-4">
-              {/* Analysis Feed */}
-              <div className="space-y-2">
+            <div className="px-5 py-5 space-y-5">
+              {/* Transaction Input Form */}
+              <div className="space-y-3">
                 <p className="text-[10px] uppercase tracking-widest font-bold" style={{ color: '#52525b' }}>
-                  Analysis Feed
+                  Transaction Parameters
                 </p>
-                <div 
-                  className="rounded-xl p-4 space-y-2 min-h-[120px]"
-                  style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
-                >
-                  {analysisLines.map((line, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3, delay: i * 0.05 }}
-                      className="flex items-center gap-2"
-                    >
-                      {isAnalyzing && i === analysisLines.length - 1 ? (
-                        <Loader2 className="w-3 h-3 animate-spin" style={{ color: '#8b5cf6' }} />
-                      ) : (
-                        <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#22c55e' }} />
-                      )}
-                      <p className="text-xs" style={{ color: '#a1a1aa' }}>{line}</p>
-                    </motion.div>
-                  ))}
-                  {analysisLines.length === 0 && (
-                    <p className="text-xs" style={{ color: '#52525b' }}>Awaiting analysis...</p>
-                  )}
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wide mb-1 block" style={{ color: '#71717a' }}>Sender</label>
+                    <input
+                      type="text"
+                      value={formData.sender_id}
+                      onChange={(e) => setFormData({ ...formData, sender_id: e.target.value })}
+                      className="w-full h-9 px-3 rounded-lg text-sm outline-none transition-all"
+                      style={{ 
+                        background: 'rgba(255,255,255,0.04)', 
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        color: '#fafafa'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wide mb-1 block" style={{ color: '#71717a' }}>Receiver</label>
+                    <input
+                      type="text"
+                      value={formData.receiver_id}
+                      onChange={(e) => setFormData({ ...formData, receiver_id: e.target.value })}
+                      className="w-full h-9 px-3 rounded-lg text-sm outline-none transition-all"
+                      style={{ 
+                        background: 'rgba(255,255,255,0.04)', 
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        color: '#fafafa'
+                      }}
+                    />
+                  </div>
                 </div>
+
+                <div>
+                  <label className="text-[10px] uppercase tracking-wide mb-1 block" style={{ color: '#71717a' }}>Amount ($)</label>
+                  <input
+                    type="number"
+                    value={formData.amount}
+                    onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })}
+                    className="w-full h-9 px-3 rounded-lg text-sm outline-none transition-all"
+                    style={{ 
+                      background: 'rgba(255,255,255,0.04)', 
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      color: '#fafafa'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] uppercase tracking-wide mb-1 block" style={{ color: '#71717a' }}>Transaction Type</label>
+                  <select
+                    value={formData.type}
+                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                    className="w-full h-9 px-3 rounded-lg text-sm outline-none transition-all cursor-pointer"
+                    style={{ 
+                      background: 'rgba(255,255,255,0.04)', 
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      color: '#fafafa'
+                    }}
+                  >
+                    {TRANSACTION_TYPES.map((type) => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wide mb-1 block" style={{ color: '#71717a' }}>Sender Balance</label>
+                    <input
+                      type="number"
+                      value={formData.oldbalanceOrg}
+                      onChange={(e) => setFormData({ ...formData, oldbalanceOrg: Number(e.target.value) })}
+                      className="w-full h-9 px-3 rounded-lg text-sm outline-none transition-all"
+                      style={{ 
+                        background: 'rgba(255,255,255,0.04)', 
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        color: '#fafafa'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wide mb-1 block" style={{ color: '#71717a' }}>Receiver Balance</label>
+                    <input
+                      type="number"
+                      value={formData.oldbalanceDest}
+                      onChange={(e) => setFormData({ ...formData, oldbalanceDest: Number(e.target.value) })}
+                      className="w-full h-9 px-3 rounded-lg text-sm outline-none transition-all"
+                      style={{ 
+                        background: 'rgba(255,255,255,0.04)', 
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        color: '#fafafa'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <motion.button
+                  onClick={handlePredict}
+                  disabled={isAnalyzing}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full h-10 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                  style={{
+                    background: 'linear-gradient(135deg, #8b5cf6 0%, #a855f7 50%, #c084fc 100%)',
+                    boxShadow: '0 4px 15px rgba(139,92,246,0.3)'
+                  }}
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-4 h-4" />
+                      Run Neural Analysis
+                    </>
+                  )}
+                </motion.button>
               </div>
 
-              {/* Risk Score */}
-              {riskScore !== null && (
+              {/* Results */}
+              {prediction && (
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 300 }}
-                  className="space-y-3"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-4"
                 >
-                  <p className="text-[10px] uppercase tracking-widest font-bold" style={{ color: '#52525b' }}>
-                    Threat Assessment
-                  </p>
-                  <div className="flex items-center gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-end justify-between mb-2">
-                        <span className="text-2xl font-bold" style={{ 
-                          color: riskScore >= 70 ? '#ef4444' : riskScore >= 40 ? '#f59e0b' : '#22c55e',
+                  <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)' }} />
+                  
+                  {/* Risk Score */}
+                  <div className="space-y-2">
+                    <p className="text-[10px] uppercase tracking-widest font-bold" style={{ color: '#52525b' }}>
+                      Risk Assessment
+                    </p>
+                    <div 
+                      className="rounded-xl p-4"
+                      style={{ 
+                        background: `${riskColorValue}10`,
+                        border: `1px solid ${riskColorValue}30`
+                      }}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-3xl font-bold" style={{ 
+                          color: riskColorValue,
                           fontFamily: 'Space Grotesk, sans-serif'
                         }}>
-                          {riskScore}%
+                          {prediction.fraud_probability.toFixed(1)}%
                         </span>
+                        {prediction.is_fraud ? (
+                          <div className="flex items-center gap-1 px-2 py-1 rounded-full" style={{ background: 'rgba(239,68,68,0.15)' }}>
+                            <AlertTriangle className="w-3 h-3" style={{ color: '#ef4444' }} />
+                            <span className="text-[10px] font-bold" style={{ color: '#ef4444' }}>FRAUD</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 px-2 py-1 rounded-full" style={{ background: 'rgba(34,197,94,0.15)' }}>
+                            <Sparkles className="w-3 h-3" style={{ color: '#22c55e' }} />
+                            <span className="text-[10px] font-bold" style={{ color: '#22c55e' }}>CLEAR</span>
+                          </div>
+                        )}
                       </div>
+                      
                       <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
                         <motion.div
                           initial={{ width: 0 }}
-                          animate={{ width: `${riskScore}%` }}
+                          animate={{ width: `${prediction.fraud_probability}%` }}
                           transition={{ duration: 0.8, ease: 'easeOut' }}
                           className="h-full rounded-full"
-                          style={{ 
-                            background: riskScore >= 70 ? '#ef4444' : riskScore >= 40 ? '#f59e0b' : '#22c55e'
-                          }}
+                          style={{ background: riskColorValue }}
                         />
                       </div>
                     </div>
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ 
-                      background: riskScore >= 70 ? 'rgba(239,68,68,0.15)' : riskScore >= 40 ? 'rgba(245,158,11,0.15)' : 'rgba(34,197,94,0.15)'
-                    }}>
-                      <Sparkles className="w-5 h-5" style={{ 
-                        color: riskScore >= 70 ? '#ef4444' : riskScore >= 40 ? '#f59e0b' : '#22c55e'
-                      }} />
+                  </div>
+
+                  {/* Graph Metrics */}
+                  <div className="space-y-2">
+                    <p className="text-[10px] uppercase tracking-widest font-bold" style={{ color: '#52525b' }}>
+                      Graph Intelligence
+                    </p>
+                    <div 
+                      className="rounded-xl p-3 space-y-2"
+                      style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
+                    >
+                      <div className="flex items-center justify-between text-xs">
+                        <span style={{ color: '#a1a1aa' }}>Base ML Confidence</span>
+                        <span className="font-mono" style={{ color: '#fafafa' }}>
+                          {prediction.graph_metrics.base_confidence.toFixed(0)}%
+                        </span>
+                      </div>
+                      
+                      {prediction.graph_metrics.degree_boost > 0 && (
+                        <div className="flex items-center justify-between text-xs">
+                          <span style={{ color: '#a1a1aa' }}>Degree Boost (nodes: {prediction.graph_metrics.degree})</span>
+                          <span className="font-mono" style={{ color: '#f59e0b' }}>
+                            +{prediction.graph_metrics.degree_boost}%
+                          </span>
+                        </div>
+                      )}
+                      
+                      {prediction.graph_metrics.clustering_boost > 0 && (
+                        <div className="flex items-center justify-between text-xs">
+                          <span style={{ color: '#a1a1aa' }}>Clustering Boost ({prediction.graph_metrics.clustering}%)</span>
+                          <span className="font-mono" style={{ color: '#f59e0b' }}>
+                            +{prediction.graph_metrics.clustering_boost}%
+                          </span>
+                        </div>
+                      )}
+                      
+                      {prediction.graph_metrics.cycle_detected && (
+                        <motion.div 
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="flex items-center justify-between text-xs"
+                        >
+                          <span style={{ color: '#ef4444' }}>Cycle Ring Detected</span>
+                          <span className="font-mono font-bold" style={{ color: '#ef4444' }}>
+                            +{prediction.graph_metrics.cycle_boost}% 🔁
+                          </span>
+                        </motion.div>
+                      )}
+                      
+                      <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '4px 0' }} />
+                      
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-semibold" style={{ color: '#fafafa' }}>Final Risk Score</span>
+                        <span className="font-mono font-bold" style={{ color: riskColorValue }}>
+                          {prediction.fraud_probability.toFixed(1)}%
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </motion.div>

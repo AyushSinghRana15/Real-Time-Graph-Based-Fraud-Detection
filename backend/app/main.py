@@ -13,6 +13,7 @@ from .ml_service import ml_service
 async def lifespan(app: FastAPI):
     print("Starting Forensic Lens API...")
     print(f"ML Model available: {ml_service.is_available()}")
+    print(f"Graph nodes: {ml_service.graph.number_of_nodes()}")
     yield
     print("Shutting down Forensic Lens API...")
 
@@ -21,16 +22,7 @@ app = FastAPI(title="Forensic Lens API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:4173",
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://127.0.0.1:4173",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174",
-        "http://localhost:3001",
-        "http://127.0.0.1:3001",
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -38,8 +30,8 @@ app.add_middleware(
 
 
 class TransactionPredict(BaseModel):
-    source: str
-    destination: str
+    sender_id: str
+    receiver_id: str
     amount: float
     type: Literal["TRANSFER", "CASH_OUT", "PAYMENT", "CASH_IN", "DEBIT"]
     oldbalanceOrg: Optional[float] = 0
@@ -54,6 +46,8 @@ class PredictionResult(BaseModel):
     confidence: float
     risk_level: str
     recommendation: str
+    graph_metrics: dict
+    transaction: dict
 
 
 @app.get("/health")
@@ -61,7 +55,9 @@ def health_check():
     return {
         "status": "ok",
         "timestamp": datetime.now().isoformat(),
-        "ml_model_available": ml_service.is_available()
+        "ml_model_available": ml_service.is_available(),
+        "graph_nodes": ml_service.graph.number_of_nodes(),
+        "graph_edges": ml_service.graph.number_of_edges()
     }
 
 
@@ -96,6 +92,11 @@ def predict_fraud(transaction: TransactionPredict):
     transaction_dict = transaction.model_dump()
     result = ml_service.predict(transaction_dict)
     return result
+
+
+@app.get("/api/graph/state")
+def get_graph_state():
+    return ml_service.get_graph_state()
 
 
 if __name__ == "__main__":
