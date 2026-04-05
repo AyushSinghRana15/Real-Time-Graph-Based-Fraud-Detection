@@ -3,6 +3,8 @@ import { Terminal, Brain, X, Send, Loader2, Shield, AlertTriangle, Sparkles, Tre
 import { useState, useRef, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { riskColor } from '../../utils/colors';
+import { GraphCanvas } from './GraphCanvas';
+import { ErrorBoundary } from '../ErrorBoundary';
 
 interface Message {
   id: string;
@@ -210,9 +212,15 @@ export function FocusSandbox({ isActive, onClose, defaultAlert }: FocusSandboxPr
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="absolute inset-0 z-50 flex flex-col"
-          style={{ background: 'rgba(9,9,11,0.97)', backdropFilter: 'blur(40px)' }}
+          className="absolute inset-0 z-50"
+          style={{ background: 'transparent' }}
         >
+          <div className="absolute inset-0 z-0">
+            <ErrorBoundary>
+              <GraphCanvas entityId={null} onNodeClick={() => {}} />
+            </ErrorBoundary>
+          </div>
+          <div className="absolute inset-0 z-10 flex flex-col" style={{ background: 'rgba(9,9,11,0.75)', backdropFilter: 'blur(20px)' }}>
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -628,6 +636,7 @@ export function FocusSandbox({ isActive, onClose, defaultAlert }: FocusSandboxPr
                 </div>
               </>
             )}
+          </div>
           </div>
         </motion.div>
       )}
