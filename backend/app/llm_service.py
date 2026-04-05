@@ -33,6 +33,10 @@ def generate_advice(transaction_data: dict, ml_result: dict) -> str:
         client = OpenAI(
             api_key=OPENROUTER_API_KEY,
             base_url=OPENROUTER_BASE_URL,
+            default_headers={
+                "HTTP-Referer": "http://localhost:3001",
+                "X-Title": "Forensic Lens",
+            }
         )
         
         if not OPENROUTER_API_KEY.strip():
@@ -73,7 +77,7 @@ def generate_advice(transaction_data: dict, ml_result: dict) -> str:
 Provide your forensic analysis following the standard format."""
 
         response = client.chat.completions.create(
-            model="anthropic/claude-3-haiku",
+            model="google/gemini-2.0-flash-thinking-exp-01-21",
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt}
@@ -85,11 +89,11 @@ Provide your forensic analysis following the standard format."""
         return response.choices[0].message.content
         
     except Exception as e:
-        error_str = str(e).lower()
-        if "401" in error_str or "user not found" in error_str or "invalid" in error_str:
-            print(f"OpenRouter API key invalid, using mock advice")
+        error_str = str(e)
+        if "401" in error_str or "user not found" in error_str or "invalid" in error_str.lower():
+            print(f"OpenRouter API key invalid or expired: {error_str}")
         else:
-            print(f"OpenRouter API error: {e}")
+            print(f"OpenRouter API error: {error_str}")
         return generate_mock_advice(transaction_data, ml_result)
 
 
