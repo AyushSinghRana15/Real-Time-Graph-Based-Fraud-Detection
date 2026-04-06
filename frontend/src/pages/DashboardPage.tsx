@@ -25,10 +25,10 @@ const RISK_THRESHOLDS = [
 export function DashboardPage({ onLogout }: { onLogout: () => void }) {
   const { data: alerts = [] } = useAlerts();
   const { toasts, removeToast, graphState } = useRealTimeAlerts(true);
-  const { graphData } = useRealTimeGraph(true, 2000);
+  const { graphData } = useRealTimeGraph(true, 12000);
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
   const [activeNav, setActiveNav] = useState<NavItem>('Dashboard');
-  
+
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -44,8 +44,8 @@ export function DashboardPage({ onLogout }: { onLogout: () => void }) {
     total_nodes: graphState?.stats?.total_nodes ?? graphData.nodes.length,
     total_edges: graphState?.stats?.total_edges ?? graphData.links.length,
     high_risk_nodes: graphState?.stats?.high_risk_nodes ?? graphData.nodes.filter(n => n.risk > 70).length,
-    network_avg_risk: graphState?.stats?.network_avg_risk ?? (graphData.nodes.length > 0 
-      ? graphData.nodes.reduce((acc, n) => acc + n.risk, 0) / graphData.nodes.length 
+    network_avg_risk: graphState?.stats?.network_avg_risk ?? (graphData.nodes.length > 0
+      ? graphData.nodes.reduce((acc, n) => acc + n.risk, 0) / graphData.nodes.length
       : 0),
   };
 
@@ -72,8 +72,8 @@ export function DashboardPage({ onLogout }: { onLogout: () => void }) {
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-grid opacity-20 pointer-events-none" />
         <ErrorBoundary>
-          <GraphCanvas 
-            entityId={selectedAlert?.entityId ?? null} 
+          <GraphCanvas
+            entityId={selectedAlert?.entityId ?? null}
             onNodeClick={handleNodeClick}
             autoRotate={isNetworkMode && autoRotate}
           />
@@ -117,8 +117,8 @@ export function DashboardPage({ onLogout }: { onLogout: () => void }) {
         onClose={() => setActiveNav('Dashboard')}
       />
 
-      <FocusSandbox 
-        isActive={isSandboxMode} 
+      <FocusSandbox
+        isActive={isSandboxMode}
         onClose={() => setActiveNav('Dashboard')}
         defaultAlert={selectedAlert ? { entityId: selectedAlert.entityId, entityName: selectedAlert.entityName, amount: selectedAlert.amount } : null}
       />
@@ -130,7 +130,7 @@ export function DashboardPage({ onLogout }: { onLogout: () => void }) {
 
       <SettingsOverlay isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
       <UserProfileOverlay isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} onLogout={onLogout} />
-      
+
       <ToastContainer toasts={toasts} onDismiss={removeToast} />
     </div>
   );

@@ -22,7 +22,7 @@ interface Toast {
   timestamp: Date;
 }
 
-const POLL_INTERVAL = 5000;
+const POLL_INTERVAL = 12000;
 
 export function useRealTimeAlerts(enabled = true) {
   const [alerts, setAlerts] = useState<Alert[]>([]);
