@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useAlerts } from '../hooks/useFraudDetection';
 import { useRealTimeAlerts } from '../hooks/useRealTime';
 import type { Alert, TransactionNode } from '../types';
-import { HUDHeader, NAV_ITEMS } from '../components/dashboard/HUDHeader';
+import { HUDHeader, type NavItem } from '../components/dashboard/HUDHeader';
 import { GraphCanvas } from '../components/dashboard/GraphCanvas';
 import { HUDSidebar } from '../components/dashboard/HUDSidebar';
 import { HUDContextPanel } from '../components/dashboard/HUDContextPanel';
@@ -14,8 +14,6 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { NetworkExplorer } from '../components/dashboard/NetworkExplorer';
 import { AboutPage } from '../components/dashboard/AboutPage';
 import { useRealTimeGraph } from '../hooks/useRealTime';
-
-type NavItem = typeof NAV_ITEMS[number];
 
 const RISK_THRESHOLDS = [
   { label: 'Low (0-25%)', color: '#22c55e', minRisk: 0 },

@@ -1,10 +1,15 @@
 import { motion } from 'framer-motion';
-import { Bell, Settings, User, Activity } from 'lucide-react';
+import { Bell, Settings, User, Activity, LayoutDashboard, Network, FlaskConical, Info } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 
-export const NAV_ITEMS = ['Dashboard', 'Network', 'Sandbox', 'About'] as const;
-export type NavItem = typeof NAV_ITEMS[number];
+export const NAV_ITEMS = [
+  { id: 'Dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'Network', label: 'Network', icon: Network },
+  { id: 'Sandbox', label: 'Sandbox', icon: FlaskConical },
+  { id: 'About', label: 'About', icon: Info },
+] as const;
+export type NavItem = typeof NAV_ITEMS[number]['id'];
 
 interface HUDHeaderProps {
   activeNav: NavItem;
@@ -82,36 +87,47 @@ function NavIsland({ activeNav, onNavChange }: { activeNav: NavItem; onNavChange
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1, type: 'spring', stiffness: 400, damping: 25 }}
-      whileHover={{ scale: 1.01 }}
-      className="px-2 py-2 rounded-2xl relative"
+      className="relative px-3 py-2 rounded-2xl"
       style={{
-        background: 'rgba(12,12,15,0.75)',
-        backdropFilter: 'blur(24px)',
-        border: '1px solid rgba(255,255,255,0.06)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
+        background: 'rgba(20,20,25,0.4)',
+        backdropFilter: 'blur(40px)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
       }}
     >
-      <div className="flex items-center gap-1 relative">
-        {NAV_ITEMS.map((item) => (
-          <motion.button
-            key={item}
-            onClick={() => onNavChange(item)}
-            className="relative px-4 py-1.5 text-xs font-medium z-10"
-            whileTap={{ scale: 0.97 }}
-            style={{ color: activeNav === item ? '#fafafa' : '#71717a' }}
-          >
-            {item}
-          </motion.button>
-        ))}
+      <div className="flex items-center gap-2 relative">
+        {NAV_ITEMS.map((item) => {
+          const isActive = activeNav === item.id;
+          const Icon = item.icon;
+          
+          return (
+            <motion.button
+              key={item.id}
+              onClick={() => onNavChange(item.id)}
+              className="relative px-3 py-1.5 flex items-center gap-1.5 z-10"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.97 }}
+              style={{ color: isActive ? '#fafafa' : '#71717a' }}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              <span 
+                className="text-xs font-medium tracking-[0.1em] uppercase"
+                style={{ fontFamily: 'monospace' }}
+              >
+                {item.label}
+              </span>
+            </motion.button>
+          );
+        })}
         
         {activeNav && (
           <motion.div
             layoutId="nav-pill"
-            className="absolute h-[calc(100%-8px)] rounded-xl"
+            className="absolute inset-0 -z-0 rounded-xl"
             style={{
-              background: 'linear-gradient(135deg, rgba(244,63,94,0.25) 0%, rgba(244,63,94,0.1) 100%)',
-              border: '1px solid rgba(244,63,94,0.3)',
-              boxShadow: '0 0 20px rgba(244,63,94,0.15)',
+              background: 'linear-gradient(135deg, rgba(244,63,94,0.35) 0%, rgba(244,63,94,0.15) 100%)',
+              border: '1px solid rgba(244,63,94,0.4)',
+              boxShadow: '0 0 25px rgba(244,63,94,0.25), inset 0 0 15px rgba(244,63,94,0.1)',
             }}
             transition={{ type: 'spring', stiffness: 500, damping: 35 }}
           />
