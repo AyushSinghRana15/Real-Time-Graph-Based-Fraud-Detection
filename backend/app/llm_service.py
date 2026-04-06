@@ -9,11 +9,11 @@ OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 print(f"OpenRouter API Key loaded: {OPENROUTER_API_KEY[:20]}..." if OPENROUTER_API_KEY else "No API key found")
 
 FREE_MODELS = [
-    "qwen/qwen3-32b-a3b-instruct:free",
-    "deepseek/deepseek-r1-0528:free",
-    "meta-llama/llama-3.1-8b-instruct:free",
-    "mistralai/mistral-7b-instruct:free",
-    "google/gemma-2-9b-it:free",
+    "anthropic/claude-3-haiku:free",
+    "openai/gpt-4o-mini:free",
+    "google/gemini-flash-1.5:free",
+    "mistralai/ministrals-8b-07:free",
+    "deepseek/deepseek-chat-v3-0324:free",
 ]
 
 LLM_MODEL = FREE_MODELS[0]
