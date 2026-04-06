@@ -14,11 +14,38 @@ interface GraphCanvasProps {
   cycleNodes?: string[];
 }
 
+const PROXY_DATA = {
+  nodes: [
+    { id: 'aditya', label: 'Aditya Sharma', risk: 75, riskScore: 0.75 },
+    { id: 'ayush', label: 'Ayush Singh', risk: 15, riskScore: 0.15 },
+    { id: 'bipin', label: 'Bipin Kumar', risk: 92, riskScore: 0.92 },
+    { id: 'ashutosh', label: 'Ashutosh Mishra', risk: 45, riskScore: 0.45 },
+    { id: 'gfx', label: 'GFX Exchange', risk: 60, riskScore: 0.60 },
+    { id: 'cryptovault', label: 'CryptoVault', risk: 35, riskScore: 0.35 },
+    { id: 'quickpay', label: 'QuickPay', risk: 28, riskScore: 0.28 },
+    { id: 'globaltrade', label: 'Global Trade', risk: 55, riskScore: 0.55 },
+    { id: 'wallet1', label: '钱包 Alpha', risk: 88, riskScore: 0.88 },
+    { id: 'wallet2', label: '钱包 Beta', risk: 82, riskScore: 0.82 },
+  ],
+  links: [
+    { source: 'aditya', target: 'bipin' },
+    { source: 'bipin', target: 'gfx' },
+    { source: 'gfx', target: 'cryptovault' },
+    { source: 'ayush', target: 'quickpay' },
+    { source: 'ashutosh', target: 'globaltrade' },
+    { source: 'wallet1', target: 'wallet2' },
+    { source: 'wallet2', target: 'wallet1' },
+    { source: 'aditya', target: 'ayush' },
+    { source: 'bipin', target: 'ashutosh' },
+    { source: 'gfx', target: 'wallet1' },
+  ],
+};
+
 export function GraphCanvas({ entityId: _entityId, onNodeClick, autoRotate = false, cycleNodes = [] }: GraphCanvasProps) {
   const graphRef = useRef<any>(null);
   const [dims, setDims] = useState({ w: window.innerWidth, h: window.innerHeight });
   const [isInitialized, setIsInitialized] = useState(false);
-  const [graphData, setGraphData] = useState({ nodes: [] as any[], links: [] as any[] });
+  const [graphData, setGraphData] = useState(PROXY_DATA);
   const cycleNodeSet = useRef<Set<string>>(new Set(cycleNodes));
 
   useEffect(() => {
@@ -29,14 +56,19 @@ export function GraphCanvas({ entityId: _entityId, onNodeClick, autoRotate = fal
     const fetchGraph = async () => {
       try {
         const res = await fetch('/api/graph/state');
-        const data = await res.json();
-        setGraphData({
-          nodes: data.nodes.map((n: any) => ({ ...n, riskScore: n.risk / 100 })),
-          links: data.edges.filter((l: any) => l.source && l.target),
-        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.nodes && data.nodes.length > 0) {
+            setGraphData({
+              nodes: data.nodes.map((n: any) => ({ ...n, riskScore: n.risk / 100 })),
+              links: data.edges.filter((l: any) => l.source && l.target),
+            });
+          }
+        }
         setIsInitialized(true);
       } catch (error) {
         console.error('Error fetching graph:', error);
+        setIsInitialized(true);
       }
     };
     fetchGraph();
