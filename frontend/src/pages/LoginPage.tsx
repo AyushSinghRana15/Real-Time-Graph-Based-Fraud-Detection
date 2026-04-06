@@ -30,6 +30,13 @@ function NetworkGraphBackground() {
   const nodesRef = useRef<GraphNode[]>([]);
   const rafRef = useRef<number>(0);
 
+  const hexToRgba = (hex: string, alpha: number) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  };
+
   const initNodes = useCallback((width: number, height: number) => {
     const NODE_COUNT = 60;
     nodesRef.current = Array.from({ length: NODE_COUNT }, () => {
@@ -112,8 +119,8 @@ function NetworkGraphBackground() {
           if (dist < EDGE_DIST) {
             const op = (1 - dist / EDGE_DIST) * 0.2;
             const gradient = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
-            gradient.addColorStop(0, a.color.replace(')', `,${op})`).replace('rgb', 'rgba').replace('#', ''));
-            gradient.addColorStop(1, b.color.replace(')', `,${op})`).replace('rgb', 'rgba').replace('#', ''));
+            gradient.addColorStop(0, hexToRgba(a.color, op));
+            gradient.addColorStop(1, hexToRgba(b.color, op));
             
             ctx.beginPath();
             ctx.moveTo(a.x, a.y);
