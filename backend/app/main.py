@@ -40,12 +40,9 @@ async def lifespan(app: FastAPI):
                 alerts_cache.extend([Alert(**a) for a in raw_alerts])
                 print(f"Background: Loaded {len(transactions_cache)} live transactions, {len(alerts_cache)} alerts")
             else:
-                print("Background: No live transactions received. Keeping mock data.")
+                print("Background: Using mock data (no live transactions).")
         except Exception as e:
-            import traceback
-            print(f"Background Warning: Could not fetch live data: {e}")
-            traceback.print_exc()
-            print("Keeping mock data as fallback.")
+            print(f"Background: Using mock data (CoinGecko unavailable: {type(e).__name__}).")
 
     asyncio.create_task(fetch_background_data())
     yield

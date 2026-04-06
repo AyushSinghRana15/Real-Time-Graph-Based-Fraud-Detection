@@ -79,7 +79,7 @@ def generate_advice(transaction_data: dict, ml_result: dict) -> str:
 Provide your forensic analysis following the standard format."""
 
         response = client.chat.completions.create(
-            model="qwen/qwen3.6-plus:free",
+            model="google/gemma-3-4b-it:free",
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt}
