@@ -8,6 +8,8 @@ OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 print(f"OpenRouter API Key loaded: {OPENROUTER_API_KEY[:20]}..." if OPENROUTER_API_KEY else "No API key found")
 
+LLM_MODEL = "qwen/qwen3-next-80b-a3b-instruct:free"
+
 SYSTEM_PROMPT = """You are a Senior Financial Forensic Analyst with 20 years of experience in anti-money laundering (AML) and fraud detection. You provide clear, actionable intelligence for compliance teams.
 
 Your analysis should be:
@@ -79,9 +81,10 @@ def generate_advice(transaction_data: dict, ml_result: dict) -> str:
 Provide your forensic analysis following the standard format."""
 
         response = client.chat.completions.create(
-            model="google/gemma-3-4b-it:free",
+            model=LLM_MODEL,
             messages=[
-                {"role": "user", "content": f"{SYSTEM_PROMPT}\n\n{user_prompt}"}
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt}
             ],
             max_tokens=500,
             temperature=0.3,
@@ -91,7 +94,9 @@ Provide your forensic analysis following the standard format."""
         
     except Exception as e:
         error_str = str(e)
-        if "401" in error_str or "user not found" in error_str or "invalid" in error_str.lower():
+        if "429" in error_str or "rate limit" in error_str.lower():
+            print(f"OpenRouter rate limited, using mock advice: {error_str}")
+        elif "401" in error_str or "user not found" in error_str or "invalid" in error_str.lower():
             print(f"OpenRouter API key invalid or expired: {error_str}")
         else:
             print(f"OpenRouter API error: {error_str}")
