@@ -247,44 +247,52 @@ export function NetworkPage({ onClose }: { onClose: () => void }) {
     const g = new THREE.Group();
 
     const degree = node.degree || 1;
-    const nodeSize = isCycle ? 8 : Math.max(3, Math.min(6, 2 + degree * 0.8));
+    const nodeSize = isCycle ? 15 : Math.max(8, Math.min(14, 6 + degree * 1.5));
 
     const mesh = new THREE.Mesh(
-      new THREE.SphereGeometry(nodeSize, 24, 24),
+      new THREE.SphereGeometry(nodeSize, 32, 32),
       new THREE.MeshPhongMaterial({
         color: baseColor,
         transparent: true,
         opacity: 0.95,
         emissive: baseColor,
-        emissiveIntensity: isCycle ? 0.8 : 0.3,
+        emissiveIntensity: isCycle ? 1.0 : 0.5,
       }),
     );
     g.add(mesh);
 
     if (isCycle) {
       const ring = new THREE.Mesh(
-        new THREE.RingGeometry(nodeSize + 3, nodeSize + 4.5, 32),
-        new THREE.MeshBasicMaterial({ color: '#ef4444', transparent: true, opacity: 0.5, side: THREE.DoubleSide }),
+        new THREE.RingGeometry(nodeSize + 5, nodeSize + 8, 48),
+        new THREE.MeshBasicMaterial({ color: '#ef4444', transparent: true, opacity: 0.6, side: THREE.DoubleSide }),
       );
       ring.rotation.x = Math.PI / 2;
       g.add(ring);
+      
+      const innerRing = new THREE.Mesh(
+        new THREE.RingGeometry(nodeSize + 2, nodeSize + 4, 48),
+        new THREE.MeshBasicMaterial({ color: '#fca5a5', transparent: true, opacity: 0.3, side: THREE.DoubleSide }),
+      );
+      innerRing.rotation.x = Math.PI / 2;
+      g.add(innerRing);
     }
 
     const labelColor = isCycle ? '#ef4444' : '#60a5fa';
     const sprite = createTextSprite(node.label, labelColor);
-    sprite.position.y = nodeSize + 4;
+    sprite.position.y = nodeSize + 8;
+    sprite.scale.set(16, 4, 1);
     g.add(sprite);
 
     return g;
   }, [cycleNodes]);
 
   const linkColor = useCallback((link: any) => {
-    if (link.isCycle) return 'rgba(239, 68, 68, 0.7)';
-    return 'rgba(255,255,255,0.15)';
+    if (link.isCycle) return 'rgba(239, 68, 68, 0.8)';
+    return 'rgba(255,255,255,0.25)';
   }, []);
 
   const linkWidth = useCallback((link: any) => {
-    return link.isCycle ? 3 : 1.5;
+    return link.isCycle ? 5 : 2.5;
   }, []);
 
   const sender = `user_${formData.sender_id}`;
