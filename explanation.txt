@@ -1,0 +1,460 @@
+# Forensic Lens - Technical Documentation
+
+## Overview
+
+Forensic Lens is a real-time fraud detection system that combines machine learning, graph analysis, and LLM-powered investigation in an immersive 3D visualization interface.
+
+---
+
+## Frontend Architecture
+
+### Tech Stack
+
+| Technology | Purpose |
+|------------|---------|
+| React 18 | UI framework |
+| Vite | Build tool and dev server |
+| TypeScript | Type safety |
+| Framer Motion | Animations and transitions |
+| Three.js | 3D graphics engine |
+| react-force-graph-3d | 3D network graph visualization |
+| Tailwind CSS | Utility-first styling |
+| TanStack Query | Data fetching and caching |
+
+### UI/UX Design
+
+#### Color Palette
+
+| Purpose | Color | Hex |
+|---------|-------|-----|
+| Background | Zinc 950 | #09090b |
+| Card Background | Zinc 900 | #18181b |
+| Primary Accent | Rose 500 | #f43f5e |
+| Secondary Accent | Indigo 500 | #6366f1 |
+| Success | Emerald 500 | #22c55e |
+| Warning | Amber 500 | #f59e0b |
+| Danger | Red 500 | #ef4444 |
+| Text Primary | Zinc 50 | #fafafa |
+| Text Secondary | Zinc 400 | #a1a1aa |
+| Text Muted | Zinc 500 | #71717a |
+
+#### Typography
+
+- **Font Family**: Space Grotesk (headings), Monospace (code/data)
+- **Letter Spacing**: Wide tracking (0.1em - 0.25em) for labels
+- **Hierarchy**: Bold 700 for headings, Regular 400 for body
+
+#### Layout System
+
+1. **Magnetic Floating Island** - Top navigation with glassmorphism effect
+2. **3D Graph Canvas** - Full-bleed immersive visualization
+3. **Slide-out Panels** - Context and analytics panels
+4. **Overlay Modals** - Focus modes for deep analysis
+
+#### Design Patterns
+
+- **Glassmorphism**: backdrop-blur-xl with semi-transparent backgrounds
+- **Gradient Borders**: Linear gradients on borders for premium feel
+- **Glow Effects**: Box shadows with colored opacity for emphasis
+- **Micro-animations**: Subtle scale, opacity, and position transitions
+
+---
+
+## 3D Graph Visualization
+
+### ForceGraph3D Configuration
+
+```typescript
+ForceGraph3D {
+  nodeThreeObject: Custom mesh rendering
+  linkDirectionalParticles: Animated flow indicators
+  controlType: "orbit" for camera control
+  cooldownTicks: 100 for settling
+  autoRotate: Optional rotation for engagement
+}
+```
+
+### Node Rendering
+
+Each node is rendered as a custom Three.js Group containing:
+
+1. **Main Sphere**: SphereGeometry with MeshPhongMaterial
+   - Size varies by risk level (8-15 units)
+   - Color based on risk score
+   - Emissive glow for high-risk nodes
+
+2. **Ring Geometry** (for cycle nodes):
+   - Double ring effect for fraud ring visibility
+   - Red color (#ef4444) with transparency
+   - Rotation for 3D orientation
+
+3. **Text Sprite**:
+   - Canvas-based texture rendering
+   - Label above each node
+   - Color-coded by node type
+
+### Risk-Based Node Sizing
+
+| Risk Level | Size | Color | Glow |
+|------------|------|-------|------|
+| Low (0-25%) | 8 | #22c55e | None |
+| Medium (25-50%) | 10 | #eab308 | Subtle |
+| High (50-75%) | 12 | #f97316 | Moderate |
+| Critical (75%+) | 15 | #ef4444 | Strong |
+
+### Link Rendering
+
+| Type | Color | Width | Particles |
+|------|-------|-------|-----------|
+| Normal | rgba(255,255,255,0.25) | 2.5 | None |
+| Cycle | rgba(239,68,68,0.8) | 5 | Directional |
+
+---
+
+## Backend Architecture
+
+### Tech Stack
+
+| Technology | Purpose |
+|------------|---------|
+| FastAPI | API framework |
+| Python 3.10+ | Runtime |
+| XGBoost | ML classification |
+| NetworkX | Graph algorithms |
+| SQLite | Persistent storage |
+| aiosqlite | Async database access |
+| OpenRouter | LLM inference |
+
+### API Endpoints
+
+#### Health & Status
+
+```
+GET /health
+Response: {
+  status: "ok",
+  ml_model_available: boolean,
+  graph_nodes: number,
+  graph_edges: number,
+  live_data_source: string
+}
+```
+
+#### Fraud Prediction
+
+```
+POST /api/predict
+Body: {
+  sender_id: string,
+  receiver_id: string,
+  amount: number,
+  type: "TRANSFER" | "CASH_OUT" | "PAYMENT" | "CASH_IN" | "DEBIT",
+  oldbalanceOrg: number,
+  newbalanceOrig: number,
+  oldbalanceDest: number,
+  newbalanceDest: number
+}
+Response: {
+  is_fraud: boolean,
+  fraud_probability: number,
+  confidence: number,
+  risk_level: "low" | "medium" | "high" | "critical",
+  recommendation: "allow" | "block",
+  reasons: [{ factor, detail, weight }],
+  graph_metrics: { ... },
+  transaction: { ... }
+}
+```
+
+#### LLM Analysis
+
+```
+POST /api/advice
+Body: {
+  transaction: TransactionData,
+  ml_result: PredictionResult
+}
+Response: {
+  advice: string (forensic analysis)
+}
+```
+
+#### Graph Operations
+
+```
+GET  /api/graph/state     - Full graph with nodes/edges
+GET  /api/graph/analytics - Cycle detection, hub analysis
+POST /api/graph/reset     - Clear graph to seed state
+POST /api/simulate-attack - Generate synthetic fraud pattern
+```
+
+---
+
+## Machine Learning
+
+### XGBoost Model
+
+- **File**: `Model/model.pkl`
+- **Features**: 16 columns
+- **Algorithm**: Gradient Boosting (XGBClassifier)
+- **Task**: Binary classification (fraud/legitimate)
+
+#### Feature Engineering
+
+| Feature | Description |
+|---------|-------------|
+| orig_diff | oldbalanceOrg - newbalanceOrig |
+| dest_diff | newbalanceDest - oldbalanceDest |
+| orig_zero | Boolean: sender had zero balance |
+| dest_zero | Boolean: receiver had zero balance |
+| isHighRiskType | Boolean: CASH_OUT or TRANSFER |
+| type_* | One-hot encoded transaction types |
+
+### Hybrid Scoring Formula
+
+```
+final_probability = ml_probability + graph_boosts + amount_boost
+```
+
+#### Graph Boosts
+
+| Condition | Boost |
+|-----------|-------|
+| Degree > 3 | +5% |
+| Degree > 5 | +10% |
+| Clustering > 0.4 | +10% |
+| Cycle Detected | +30% |
+| Money Mule Chain | +35% |
+| Fan-In Pattern | +25% |
+
+#### Amount Thresholds
+
+| Amount | Boost |
+|--------|-------|
+| > $250K | +10% |
+| > $1M | +20% |
+| > $10M | +40% |
+
+#### Fraud Threshold
+
+Score ≥ 70% triggers high-risk alert (blocked)
+
+---
+
+## Graph Analysis (NetworkX)
+
+### Algorithms Used
+
+1. **Cycle Detection** (`nx.simple_cycles`)
+   - Identifies circular fund flows
+   - Used for fraud ring detection
+   - Returns list of cycles in the graph
+
+2. **Clustering Coefficient** (`nx.clustering`)
+   - Measures local density
+   - High clustering = fraud ring pattern
+   - Calculated on undirected graph
+
+3. **PageRank** (`nx.pagerank`)
+   - Identifies central/important nodes
+   - Used for hub detection
+   - Alpha: 0.85 (damping factor)
+
+4. **Risk Propagation**
+   - Iterative spreading of risk scores
+   - 70% current + 30% neighbor average
+   - 2 iterations per transaction
+
+### Money Mule Detection
+
+Patterns detected:
+- **Chain Pattern**: Path length > 2 between sender/receiver
+- **Fan-In Sink**: Multiple nodes sending to single receiver
+- **Cycle Ring**: Circular flow between accounts
+
+---
+
+## LLM Integration
+
+### Model
+
+- **Provider**: OpenRouter
+- **Model**: qwen/qwen3-next-80b-a3b-instruct:free
+- **Temperature**: 0.3 (low for consistent analysis)
+- **Max Tokens**: 500
+
+### System Prompt
+
+```
+You are a Senior Financial Forensic Analyst with 20 years 
+of experience in anti-money laundering (AML) and fraud detection.
+
+Format:
+1. Threat Assessment: Brief summary
+2. Key Indicators: 2-3 red flags
+3. Recommended Actions: 3 numbered steps
+4. Regulatory Notes: AML/BSA implications
+```
+
+### Fallback
+
+If LLM unavailable, generates mock analysis based on:
+- Transaction parameters
+- ML confidence scores
+- Graph metrics
+
+---
+
+## Database (SQLite)
+
+### Schema
+
+```sql
+CREATE TABLE users (
+  id TEXT PRIMARY KEY,          -- Hex ID (0x...)
+  username TEXT NOT NULL,
+  risk_score REAL DEFAULT 50.0,
+  user_type TEXT DEFAULT 'User',
+  created_at TEXT,
+  updated_at TEXT
+);
+
+CREATE TABLE transactions (
+  id TEXT PRIMARY KEY,
+  sender_id TEXT NOT NULL,
+  receiver_id TEXT NOT NULL,
+  amount REAL NOT NULL,
+  transaction_type TEXT,
+  timestamp TEXT,
+  is_flagged INTEGER DEFAULT 0,
+  fraud_probability REAL,
+  FOREIGN KEY (sender_id) REFERENCES users(id),
+  FOREIGN KEY (receiver_id) REFERENCES users(id)
+);
+```
+
+### Seed Data
+
+Initial entities for demonstration:
+
+| Username | Type | Risk Score |
+|----------|------|-----------|
+| Aditya Sharma | User | 75.0 |
+| Ayush Singh | User | 15.0 |
+| Bipin Kumar | User | 92.0 |
+| Ashutosh Mishra | User | 45.0 |
+| GFX Exchange Hub | Exchange | 60.0 |
+| CryptoVault Services | Exchange | 35.0 |
+| QuickPay Merchant | Merchant | 28.0 |
+| Global Trade Corp | Merchant | 55.0 |
+| 匿名钱包 Alpha | User | 88.0 |
+| 匿名钱包 Beta | User | 82.0 |
+
+---
+
+## Deployment
+
+### Railway (Recommended)
+
+1. Connect GitHub repo
+2. Add environment variable: `OPENROUTER_API_KEY`
+3. Railway auto-builds frontend + deploys backend
+4. Single port serves both API and frontend
+
+### Docker
+
+```dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+RUN pip install -r requirements.txt
+COPY backend/ ./app/
+COPY Model/ ./Model/
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| OPENROUTER_API_KEY | Yes | For LLM analysis |
+| PORT | No | Railway port (auto-set) |
+| DATABASE_PATH | No | SQLite file location |
+
+---
+
+## Performance Considerations
+
+### Frontend
+
+- **3D Graph**: Uses GPU acceleration via Three.js
+- **Polling Interval**: 12 seconds for graph refresh
+- **Query Caching**: TanStack Query with stale time
+- **Code Splitting**: Vite handles automatically
+
+### Backend
+
+- **Database**: SQLite with indexes on sender/receiver
+- **Background Tasks**: Async data fetching from CoinGecko
+- **Model Loading**: Singleton pattern (loaded once at startup)
+
+### Graph Scaling
+
+Current implementation suitable for:
+- Up to ~1000 nodes
+- Real-time updates with 5s polling
+- Single-server deployment
+
+For larger scale, consider:
+- Neo4j for graph storage
+- Redis for caching
+- WebSocket for real-time updates
+
+---
+
+## File Structure
+
+```
+Real-Time-Graph-Based-Fraud-Detection/
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   │   └── dashboard/
+│   │   │       ├── GraphCanvas.tsx    # 3D ForceGraph
+│   │   │       ├── NetworkPage.tsx   # Full network analysis
+│   │   │       ├── FocusSandbox.tsx  # Forensic lab
+│   │   │       ├── AboutPage.tsx     # System info
+│   │   │       └── HUDHeader.tsx     # Navigation
+│   │   ├── hooks/
+│   │   │   └── useRealTime.ts        # Data polling
+│   │   ├── api/
+│   │   │   └── fraudApi.ts           # API client
+│   │   └── pages/
+│   │       └── DashboardPage.tsx     # Main page
+│   └── package.json
+├── backend/
+│   ├── app/
+│   │   ├── main.py                   # FastAPI app
+│   │   ├── ml_service.py            # ML + Graph
+│   │   ├── llm_service.py           # OpenRouter
+│   │   ├── db_models.py             # SQLite
+│   │   └── crypto_service.py        # CoinGecko
+│   └── requirements.txt
+├── Model/
+│   ├── model.pkl                    # XGBoost model
+│   └── columns.pkl                 # Feature names
+├── Dockerfile
+├── railway.json
+└── README.md
+```
+
+---
+
+## Future Enhancements
+
+1. **WebSocket Support**: Real-time updates instead of polling
+2. **User Authentication**: JWT-based auth with roles
+3. **Report Generation**: PDF/CSV fraud reports
+4. **Case Management**: Track investigation workflows
+5. **Multi-tenancy**: Support multiple organizations
+6. **Graph Database**: Migrate to Neo4j for better scaling
+7. **Feature Store**: MLOps for model retraining
