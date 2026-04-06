@@ -1,11 +1,6 @@
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { useState, useEffect, useRef } from 'react';
-import { X, ExternalLink, Cpu, Network, Brain, Database, Shield, GitBranch, Layers, Activity, Zap } from 'lucide-react';
-const Github = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor" {...props}>
-    <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
-  </svg>
-);
+import { X, Cpu, Network, Brain, Database, Shield, GitBranch, Layers, Activity, Zap } from 'lucide-react';
 
 interface AboutPageProps {
   isActive: boolean;
@@ -22,7 +17,10 @@ const techStack = [
 ];
 
 const teamMembers = [
-  { name: 'Ayush Singh Rana', role: 'Lead Developer', handle: '@AyushSinghRana15' },
+  { name: 'Ayush Singh Rana', role: 'Lead Developer', handle: '@AyushSinghRana15', color: '#818cf8' },
+  { name: 'Aditya Singh', role: 'Contributor', handle: '@adityasingh', color: '#22c55e' },
+  { name: 'Bipin Kumar', role: 'Contributor', handle: '@bipinkumar', color: '#f59e0b' },
+  { name: 'Ashutosh Kumar', role: 'Contributor', handle: '@ashutoshkumar', color: '#ec4899' },
 ];
 
 const fraudPatterns = [
@@ -390,7 +388,7 @@ export function AboutPage({ isActive, onClose }: AboutPageProps) {
               >
                 <div className="flex items-center gap-3 mb-4">
                   <Zap className="w-5 h-5 text-amber-400" />
-                  <h2 className="text-lg font-semibold text-zinc-200">Developer</h2>
+                  <h2 className="text-lg font-semibold text-zinc-200">Contributors</h2>
                 </div>
                 <div className="space-y-3">
                   {teamMembers.map((member) => (
@@ -398,7 +396,8 @@ export function AboutPage({ isActive, onClose }: AboutPageProps) {
                       <div 
                         className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold"
                         style={{ 
-                          background: 'linear-gradient(135deg, #818cf8 0%, #c084fc 100%)',
+                          background: `linear-gradient(135deg, ${member.color} 0%, ${member.color}80 100%)`,
+                          boxShadow: `0 0 12px ${member.color}40`,
                         }}
                       >
                         {member.name[0]}
@@ -409,16 +408,6 @@ export function AboutPage({ isActive, onClose }: AboutPageProps) {
                       </div>
                     </div>
                   ))}
-                  <a
-                    href="https://github.com/AyushSinghRana15"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 mt-4 text-sm text-zinc-400 hover:text-zinc-200 transition-colors"
-                  >
-                    <Github className="w-4 h-4" />
-                    @AyushSinghRana15
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
                 </div>
               </motion.div>
             </div>
