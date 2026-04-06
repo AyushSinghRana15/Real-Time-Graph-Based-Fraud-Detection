@@ -62,20 +62,6 @@ export function useRealTimeAlerts(enabled = true) {
         isFirstFetch.current = false;
       } else {
         const newAlertIds = new Set(newAlerts.map(a => a.id));
-        const previousIds = previousAlertsRef.current;
-        
-        const newHighRiskAlerts = newAlerts.filter(
-          a => a.type === 'high_risk' && !previousIds.has(a.id)
-        );
-        
-        for (const alert of newHighRiskAlerts) {
-          addToast({
-            type: 'critical',
-            title: 'High-Risk Alert Detected',
-            message: `${alert.entityName}: $${alert.amount.toLocaleString()} - ${alert.description.slice(0, 60)}...`,
-          });
-        }
-        
         previousAlertsRef.current = newAlertIds;
       }
       
