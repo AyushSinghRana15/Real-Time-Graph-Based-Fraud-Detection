@@ -38,27 +38,12 @@ interface PredictionResult {
 }
 
 const PROXY_NODES: GraphNode[] = [
-  { id: 'user_1', label: 'user_1', riskScore: 0.3, isCycle: false, degree: 3 },
-  { id: 'user_2', label: 'user_2', riskScore: 0.5, isCycle: false, degree: 2 },
-  { id: 'user_3', label: 'user_3', riskScore: 0.8, isCycle: true, degree: 4 },
-  { id: 'user_4', label: 'user_4', riskScore: 0.4, isCycle: false, degree: 1 },
-  { id: 'user_5', label: 'user_5', riskScore: 0.6, isCycle: true, degree: 3 },
-  { id: 'user_6', label: 'user_6', riskScore: 0.2, isCycle: false, degree: 2 },
-  { id: 'user_7', label: 'user_7', riskScore: 0.7, isCycle: true, degree: 2 },
-  { id: 'user_8', label: 'user_8', riskScore: 0.45, isCycle: false, degree: 1 },
+  { id: 'gateway_main', label: 'System Gateway Alpha', riskScore: 0.05, isCycle: false, degree: 2 },
+  { id: 'gateway_backup', label: 'System Gateway Beta', riskScore: 0.08, isCycle: false, degree: 1 },
 ];
 
 const PROXY_LINKS: GraphLink[] = [
-  { source: 'user_1', target: 'user_2', isCycle: false },
-  { source: 'user_2', target: 'user_3', isCycle: false },
-  { source: 'user_3', target: 'user_5', isCycle: true },
-  { source: 'user_5', target: 'user_3', isCycle: true },
-  { source: 'user_1', target: 'user_4', isCycle: false },
-  { source: 'user_4', target: 'user_6', isCycle: false },
-  { source: 'user_3', target: 'user_7', isCycle: true },
-  { source: 'user_7', target: 'user_3', isCycle: true },
-  { source: 'user_6', target: 'user_8', isCycle: false },
-  { source: 'user_8', target: 'user_1', isCycle: false },
+  { source: 'gateway_main', target: 'gateway_backup', isCycle: false },
 ];
 
 function createTextSprite(text: string, color: string) {
@@ -90,8 +75,8 @@ export function NetworkPage({ onClose }: { onClose: () => void }) {
   const [nodes, setNodes] = useState<GraphNode[]>(PROXY_NODES);
   const [links, setLinks] = useState<GraphLink[]>(PROXY_LINKS);
   const [currentEdges, setCurrentEdges] = useState<string[]>(PROXY_LINKS.map(l => `${l.source} → ${l.target}`));
-  const [cycleNodes, setCycleNodes] = useState<string[]>(['user_3', 'user_5', 'user_7']);
-  const [cycles, setCycles] = useState<string[][]>([['user_3', 'user_5'], ['user_3', 'user_7']]);
+  const [cycleNodes, setCycleNodes] = useState<string[]>([]);
+  const [cycles, setCycles] = useState<string[][]>([]);
   const [initialized, setInitialized] = useState(false);
 
   const [formData, setFormData] = useState({

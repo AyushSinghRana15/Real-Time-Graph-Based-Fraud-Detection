@@ -293,6 +293,7 @@ interface PredictionResult {
     degree: number;
     clustering: number;
     cycle_detected: boolean;
+    cycle_nodes: string[];
     base_confidence: number;
   };
   transaction: {
@@ -335,8 +336,10 @@ export function FocusSandbox({ isActive, onClose, defaultAlert }: FocusSandboxPr
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulationResult, setSimulationResult] = useState<{ pattern: string; description: string } | null>(null);
+  const [cycleNodes, setCycleNodes] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+  const graphRef = useRef<{ refresh: () => void } | null>(null);
 
   const [formData, setFormData] = useState({
     sender_id: defaultAlert?.entityId || 'ENT-100',
@@ -375,7 +378,13 @@ export function FocusSandbox({ isActive, onClose, defaultAlert }: FocusSandboxPr
       });
       const data = await response.json();
       setPrediction(data);
+      if (data.graph_metrics?.cycle_detected && data.graph_metrics?.cycle_nodes) {
+        setCycleNodes(data.graph_metrics.cycle_nodes);
+      } else {
+        setCycleNodes([]);
+      }
       queryClient.invalidateQueries({ queryKey: ['nodes'] });
+      graphRef.current?.refresh();
 
       setActiveTab('chat');
       setIsProcessing(true);
@@ -514,7 +523,7 @@ export function FocusSandbox({ isActive, onClose, defaultAlert }: FocusSandboxPr
         >
           <div className="absolute inset-0 z-0">
             <ErrorBoundary>
-              <GraphCanvas entityId={null} onNodeClick={() => {}} />
+              <GraphCanvas ref={graphRef} entityId={null} onNodeClick={() => {}} cycleNodes={cycleNodes} />
             </ErrorBoundary>
           </div>
 

@@ -33,10 +33,16 @@ def init_db():
                 username TEXT NOT NULL,
                 risk_score REAL DEFAULT 50.0,
                 user_type TEXT DEFAULT 'User',
+                is_system INTEGER DEFAULT 0,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        
+        cursor.execute("PRAGMA table_info(users)")
+        columns = [col[1] for col in cursor.fetchall()]
+        if 'is_system' not in columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN is_system INTEGER DEFAULT 0")
         
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS transactions (
@@ -77,41 +83,26 @@ def seed_database():
             return
         
         entities = [
-            ("Aditya Sharma", "User", 75.0),
-            ("Ayush Singh", "User", 15.0),
-            ("Bipin Kumar", "User", 92.0),
-            ("Ashutosh Mishra", "User", 45.0),
-            ("GFX Exchange Hub", "Exchange", 60.0),
-            ("CryptoVault Services", "Exchange", 35.0),
-            ("QuickPay Merchant", "Merchant", 28.0),
-            ("Global Trade Corp", "Merchant", 55.0),
-            ("匿名钱包 Alpha", "User", 88.0),
-            ("匿名钱包 Beta", "User", 82.0),
+            ("Aditya Sharma", "User", 75.0, 0),
+            ("Ayush Singh", "User", 15.0, 0),
+            ("System Gateway", "Gateway", 5.0, 1),
         ]
         
         entity_ids = {}
-        for username, user_type, risk in entities:
+        for username, user_type, risk, is_system in entities:
             user_id = generate_hex_id()
             entity_ids[username] = user_id
             cursor.execute(
-                "INSERT INTO users (id, username, risk_score, user_type) VALUES (?, ?, ?, ?)",
-                (user_id, username, risk, user_type)
+                "INSERT INTO users (id, username, risk_score, user_type, is_system) VALUES (?, ?, ?, ?, ?)",
+                (user_id, username, risk, user_type, is_system)
             )
         
         import random
         base_time = datetime.now()
         
         transactions = [
-            ("Aditya Sharma", "GFX Exchange Hub", 15000, "CASH_IN"),
-            ("GFX Exchange Hub", "Bipin Kumar", 14500, "CASH_OUT"),
-            ("Aditya Sharma", "Ayush Singh", 5000, "TRANSFER"),
-            ("Ayush Singh", "QuickPay Merchant", 2000, "PAYMENT"),
-            ("Bipin Kumar", "匿名钱包 Alpha", 8000, "TRANSFER"),
-            ("匿名钱包 Alpha", "匿名钱包 Beta", 7500, "TRANSFER"),
-            ("匿名钱包 Beta", "Bipin Kumar", 7200, "TRANSFER"),
-            ("Ashutosh Mishra", "Global Trade Corp", 25000, "TRANSFER"),
-            ("Global Trade Corp", "CryptoVault Services", 24000, "CASH_OUT"),
-            ("CryptoVault Services", "Ayush Singh", 10000, "CASH_OUT"),
+            ("Aditya Sharma", "System Gateway", 5000, "TRANSFER"),
+            ("Ayush Singh", "System Gateway", 3000, "TRANSFER"),
         ]
         
         for i, (sender, receiver, amount, tx_type) in enumerate(transactions):
@@ -146,6 +137,22 @@ class UserRepository:
             return dict(row) if row else None
     
     @staticmethod
+    def get_by_username(username: str) -> Optional[Dict[str, Any]]:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+    
+    @staticmethod
+    def get_or_create(username: str, user_type: str = "User", risk_score: float = 50.0) -> tuple:
+        existing = UserRepository.get_by_username(username)
+        if existing:
+            return existing['id'], existing
+        user_id = UserRepository.create(username, user_type, risk_score)
+        return user_id, UserRepository.get_by_id(user_id)
+    
+    @staticmethod
     def update_risk_score(user_id: str, risk_score: float):
         with get_db() as conn:
             cursor = conn.cursor()
@@ -155,13 +162,13 @@ class UserRepository:
             )
     
     @staticmethod
-    def create(username: str, user_type: str = "User", risk_score: float = 50.0) -> str:
+    def create(username: str, user_type: str = "User", risk_score: float = 50.0, is_system: int = 0) -> str:
         user_id = generate_hex_id()
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT INTO users (id, username, risk_score, user_type) VALUES (?, ?, ?, ?)",
-                (user_id, username, risk_score, user_type)
+                "INSERT INTO users (id, username, risk_score, user_type, is_system) VALUES (?, ?, ?, ?, ?)",
+                (user_id, username, risk_score, user_type, is_system)
             )
         return user_id
     
@@ -170,11 +177,7 @@ class UserRepository:
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute("DELETE FROM transactions")
-            cursor.execute("DELETE FROM users WHERE username NOT IN (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                ("Aditya Sharma", "Ayush Singh", "Bipin Kumar", "Ashutosh Mishra", 
-                 "GFX Exchange Hub", "CryptoVault Services", "QuickPay Merchant", 
-                 "Global Trade Corp", "匿名钱包 Alpha", "匿名钱包 Beta")
-            )
+            cursor.execute("DELETE FROM users WHERE is_system = 0")
 
 class TransactionRepository:
     @staticmethod
@@ -252,7 +255,7 @@ class TransactionRepository:
             cursor = conn.cursor()
             
             cursor.execute("""
-                SELECT u.id, u.username, u.risk_score, u.user_type
+                SELECT u.id, u.username, u.risk_score, u.user_type, u.is_system
                 FROM users u
             """)
             users = [dict(row) for row in cursor.fetchall()]

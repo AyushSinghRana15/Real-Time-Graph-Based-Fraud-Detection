@@ -64,16 +64,17 @@ class MLService:
         amount = transaction_data.get("amount", 0)
         tx_type = transaction_data.get("type", "TRANSFER")
 
-        sender_info = UserRepository.get_by_id(sender)
-        receiver_info = UserRepository.get_by_id(receiver)
+        sender, sender_info = UserRepository.get_or_create(sender, "User", 50.0)
+        receiver, receiver_info = UserRepository.get_or_create(receiver, "User", 50.0)
+
+        self.graph.add_node(sender, label=sender_info["username"] if sender_info else sender, type="account")
+        self.graph.add_node(receiver, label=receiver_info["username"] if receiver_info else receiver, type="account")
+        self.graph.add_edge(sender, receiver, amount=amount)
         
-        if not sender_info:
-            sender = UserRepository.create(sender, "User", 50.0)
-            sender_info = UserRepository.get_by_id(sender)
-        
-        if not receiver_info:
-            receiver = UserRepository.create(receiver, "User", 50.0)
-            receiver_info = UserRepository.get_by_id(receiver)
+        if sender_info:
+            self.username_map[sender] = sender_info["username"]
+        if receiver_info:
+            self.username_map[receiver] = receiver_info["username"]
 
         ml_prob = self._get_ml_probability(transaction_data)
         graph_metrics = self._calculate_graph_metrics(sender, receiver)
@@ -92,15 +93,6 @@ class MLService:
         is_fraud = final_probability >= 70
 
         risk = int(final_probability)
-        
-        self.graph.add_node(sender, label=sender_info["username"] if sender_info else sender, type="account")
-        self.graph.add_node(receiver, label=receiver_info["username"] if receiver_info else receiver, type="account")
-        self.graph.add_edge(sender, receiver, amount=amount)
-        
-        if sender_info:
-            self.username_map[sender] = sender_info["username"]
-        if receiver_info:
-            self.username_map[receiver] = receiver_info["username"]
         
         self.node_risk_scores[sender] = self.node_risk_scores.get(sender, 0) * 0.8 + (risk / 100) * 0.2
         self.node_risk_scores[receiver] = self.node_risk_scores.get(receiver, 0) * 0.8 + (risk / 100) * 0.2
@@ -250,8 +242,16 @@ class MLService:
             receiver in self.graph and 
             nx.has_path(self.graph, receiver, sender)
         )
+        cycle_nodes = []
         if new_edge_creates_cycle:
             cycle_boost = 30.0
+            try:
+                for cycle in nx.simple_cycles(self.graph):
+                    if sender in cycle and receiver in cycle and len(cycle) >= 2:
+                        cycle_nodes = cycle
+                        break
+            except:
+                pass
         
         mule_detection = self._detect_money_muling(sender, receiver)
         if mule_detection["detected"]:
@@ -278,6 +278,7 @@ class MLService:
             "degree": max_degree,
             "clustering": round(clustering_coef * 100, 1),
             "cycle_detected": cycle_boost > 0,
+            "cycle_nodes": cycle_nodes if cycle_nodes else [],
             "mule_detected": mule_detection["detected"],
             "mule_pattern": mule_detection.get("pattern"),
             "base_confidence": 75.0
@@ -372,6 +373,7 @@ class MLService:
                 "type": user["user_type"].lower(),
                 "label": user["username"],
                 "risk": user["risk_score"],
+                "is_system": user.get("is_system", 0) == 1,
                 "tooltip": f"0x{user['id'][2:]}" if user["id"].startswith("0x") else user["id"]
             })
         
@@ -410,7 +412,7 @@ class MLService:
         try:
             undirected = self.graph.to_undirected()
             for cycle in nx.simple_cycles(self.graph):
-                if len(cycle) >= 3:
+                if len(cycle) >= 2:
                     cycle_labels = [self.username_map.get(n, n) for n in cycle]
                     cycle_path = " -> ".join(cycle_labels[:4])
                     if len(cycle) > 4:

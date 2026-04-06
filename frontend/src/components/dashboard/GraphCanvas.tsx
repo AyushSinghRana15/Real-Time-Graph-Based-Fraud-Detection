@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useImperativeHandle, forwardRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Network } from 'lucide-react';
 import ForceGraph3D from 'react-force-graph-3d';
@@ -14,34 +14,43 @@ interface GraphCanvasProps {
   cycleNodes?: string[];
 }
 
+interface GraphNode {
+  id: string;
+  label: string;
+  risk: number;
+  riskScore?: number;
+  is_system?: boolean;
+  x?: number;
+  y?: number;
+  z?: number;
+}
+
+interface GraphLink {
+  source: string;
+  target: string;
+}
+
+interface TransformedNode extends GraphNode {
+  riskScore: number;
+}
+
+interface TransformedLink {
+  source: string;
+  target: string;
+  isCycle?: boolean;
+}
+
 const PROXY_DATA = {
   nodes: [
-    { id: 'aditya', label: 'Aditya Sharma', risk: 75, riskScore: 0.75 },
-    { id: 'ayush', label: 'Ayush Singh', risk: 15, riskScore: 0.15 },
-    { id: 'bipin', label: 'Bipin Kumar', risk: 92, riskScore: 0.92 },
-    { id: 'ashutosh', label: 'Ashutosh Mishra', risk: 45, riskScore: 0.45 },
-    { id: 'gfx', label: 'GFX Exchange', risk: 60, riskScore: 0.60 },
-    { id: 'cryptovault', label: 'CryptoVault', risk: 35, riskScore: 0.35 },
-    { id: 'quickpay', label: 'QuickPay', risk: 28, riskScore: 0.28 },
-    { id: 'globaltrade', label: 'Global Trade', risk: 55, riskScore: 0.55 },
-    { id: 'wallet1', label: '钱包 Alpha', risk: 88, riskScore: 0.88 },
-    { id: 'wallet2', label: '钱包 Beta', risk: 82, riskScore: 0.82 },
+    { id: 'gateway_main', label: 'System Gateway Alpha', risk: 5, riskScore: 0.05 },
+    { id: 'gateway_backup', label: 'System Gateway Beta', risk: 8, riskScore: 0.08 },
   ],
   links: [
-    { source: 'aditya', target: 'bipin' },
-    { source: 'bipin', target: 'gfx' },
-    { source: 'gfx', target: 'cryptovault' },
-    { source: 'ayush', target: 'quickpay' },
-    { source: 'ashutosh', target: 'globaltrade' },
-    { source: 'wallet1', target: 'wallet2' },
-    { source: 'wallet2', target: 'wallet1' },
-    { source: 'aditya', target: 'ayush' },
-    { source: 'bipin', target: 'ashutosh' },
-    { source: 'gfx', target: 'wallet1' },
+    { source: 'gateway_main', target: 'gateway_backup' },
   ],
 };
 
-export function GraphCanvas({ entityId: _entityId, onNodeClick, autoRotate = false, cycleNodes = [] }: GraphCanvasProps) {
+export const GraphCanvas = forwardRef<{ refresh: () => void }, GraphCanvasProps>(function GraphCanvas({ entityId: _entityId, onNodeClick, autoRotate = false, cycleNodes = [] }, ref) {
   const graphRef = useRef<any>(null);
   const [dims, setDims] = useState({ w: window.innerWidth, h: window.innerHeight });
   const [isInitialized, setIsInitialized] = useState(false);
@@ -52,29 +61,32 @@ export function GraphCanvas({ entityId: _entityId, onNodeClick, autoRotate = fal
     cycleNodeSet.current = new Set(cycleNodes);
   }, [cycleNodes]);
 
-  useEffect(() => {
-    const fetchGraph = async () => {
-      try {
-        const res = await fetch('/api/graph/state');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.nodes && data.nodes.length > 0) {
-            setGraphData({
-              nodes: data.nodes.map((n: any) => ({ ...n, riskScore: n.risk / 100 })),
-              links: data.edges.filter((l: any) => l.source && l.target),
-            });
-          }
-        }
-        setIsInitialized(true);
-      } catch (error) {
-        console.error('Error fetching graph:', error);
-        setIsInitialized(true);
+  const fetchGraph = useCallback(async () => {
+    try {
+      const res = await fetch('/api/graph/state');
+      if (res.ok) {
+        const data = await res.json();
+        setGraphData({
+          nodes: data.nodes ? data.nodes.map((n: GraphNode) => ({ ...n, riskScore: n.risk / 100 })) : [],
+          links: data.edges ? data.edges.filter((l: GraphLink) => l.source && l.target) : [],
+        });
       }
-    };
+      setIsInitialized(true);
+    } catch (error) {
+      console.error('Error fetching graph:', error);
+      setIsInitialized(true);
+    }
+  }, []);
+
+  useEffect(() => {
     fetchGraph();
     const interval = setInterval(fetchGraph, 12000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchGraph]);
+
+  useImperativeHandle(ref, () => ({
+    refresh: fetchGraph,
+  }), [fetchGraph]);
 
   useEffect(() => {
     if (graphData.nodes.length > 0) {
@@ -105,43 +117,113 @@ export function GraphCanvas({ entityId: _entityId, onNodeClick, autoRotate = fal
     }
   }, [autoRotate, isInitialized]);
 
+  const transformedData = useMemo(() => {
+    const nodeIds = new Set(graphData.nodes.map(n => n.id));
+    const validLinks = graphData.links.filter(
+      (l: GraphLink) => nodeIds.has(l.source) && nodeIds.has(l.target)
+    );
+
+    const cycleEdges = new Set<string>();
+    validLinks.forEach((l: GraphLink) => {
+      if (cycleNodeSet.current.has(l.source) && cycleNodeSet.current.has(l.target)) {
+        cycleEdges.add(`${l.source}-${l.target}`);
+      }
+    });
+
+    return {
+      nodes: graphData.nodes.map((n: GraphNode) => ({ ...n, riskScore: n.risk / 100 })) as TransformedNode[],
+      links: validLinks.map((l: GraphLink) => ({
+        source: l.source,
+        target: l.target,
+        isCycle: cycleEdges.has(`${l.source}-${l.target}`)
+      })) as TransformedLink[],
+    };
+  }, [graphData]);
+
+  useEffect(() => {
+    if (cycleNodes.length > 0 && graphRef.current && isInitialized && transformedData.nodes.length > 0) {
+      const cycleNodeIds = new Set(cycleNodes);
+      const cycleDataNodes = transformedData.nodes.filter((n: TransformedNode) => cycleNodeIds.has(n.id));
+      
+      if (cycleDataNodes.length > 0) {
+        let centerX = 0, centerY = 0, centerZ = 0;
+        cycleDataNodes.forEach((n: TransformedNode) => {
+          centerX += n.x || 0;
+          centerY += n.y || 0;
+          centerZ += n.z || 0;
+        });
+        centerX /= cycleDataNodes.length;
+        centerY /= cycleDataNodes.length;
+        centerZ /= cycleDataNodes.length;
+        
+        graphRef.current.cameraPosition(
+          { x: centerX + 50, y: centerY + 30, z: centerZ + 50 },
+          { x: centerX, y: centerY, z: centerZ },
+          1500
+        );
+        
+        const control = graphRef.current.controls();
+        if (control) {
+          control.autoRotate = true;
+          control.autoRotateSpeed = 1.5;
+        }
+      }
+    }
+  }, [cycleNodes, isInitialized, transformedData.nodes.length]);
+
   const nodeObj = useCallback((node: any) => {
     const score = node.riskScore ?? node.risk / 100;
+    const isSystem = node.is_system === true || node.is_system === 1;
     const isInCycle = cycleNodeSet.current.has(node.id);
     const baseColor = isInCycle ? '#ef4444' : riskColor(score);
     const g = new THREE.Group();
-    
+
+    if (isSystem && !isInCycle) {
+      const mesh = new THREE.Mesh(
+        new THREE.SphereGeometry(1, 8, 8),
+        new THREE.MeshPhongMaterial({
+          color: '#52525b',
+          transparent: true,
+          opacity: 0.2,
+          emissive: '#52525b',
+          emissiveIntensity: 0.05
+        }),
+      );
+      g.add(mesh);
+      return g;
+    }
+
     const isHighRisk = score >= 0.6 || isInCycle;
     const mesh = new THREE.Mesh(
-      new THREE.SphereGeometry(isInCycle ? 5.5 : (isHighRisk ? 5 : 3), 16, 16),
-      new THREE.MeshPhongMaterial({ 
-        color: baseColor, 
-        transparent: true, 
-        opacity: 0.95, 
-        emissive: baseColor, 
-        emissiveIntensity: isInCycle ? 0.8 : (isHighRisk ? 0.6 : 0.2) 
+      new THREE.SphereGeometry(isInCycle ? 6 : (isHighRisk ? 5 : 3.5), 16, 16),
+      new THREE.MeshPhongMaterial({
+        color: baseColor,
+        transparent: true,
+        opacity: 0.95,
+        emissive: baseColor,
+        emissiveIntensity: isInCycle ? 0.9 : (isHighRisk ? 0.6 : 0.3)
       }),
     );
     g.add(mesh);
 
     if (isInCycle) {
       const outerRing = new THREE.Mesh(
-        new THREE.RingGeometry(7, 8.5, 32),
-        new THREE.MeshBasicMaterial({ color: '#ef4444', transparent: true, opacity: 0.4, side: THREE.DoubleSide }),
+        new THREE.RingGeometry(8, 9.5, 32),
+        new THREE.MeshBasicMaterial({ color: '#ef4444', transparent: true, opacity: 0.5, side: THREE.DoubleSide }),
       );
       outerRing.rotation.x = Math.PI / 2;
       g.add(outerRing);
 
       const innerRing = new THREE.Mesh(
-        new THREE.RingGeometry(9, 10, 32),
-        new THREE.MeshBasicMaterial({ color: '#fca5a5', transparent: true, opacity: 0.2, side: THREE.DoubleSide }),
+        new THREE.RingGeometry(10, 11, 32),
+        new THREE.MeshBasicMaterial({ color: '#fca5a5', transparent: true, opacity: 0.25, side: THREE.DoubleSide }),
       );
       innerRing.rotation.x = Math.PI / 2;
       g.add(innerRing);
     } else if (isHighRisk) {
       const ring = new THREE.Mesh(
-        new THREE.RingGeometry(8, 9, 32),
-        new THREE.MeshBasicMaterial({ color: baseColor, transparent: true, opacity: 0.3, side: THREE.DoubleSide }),
+        new THREE.RingGeometry(7, 8, 32),
+        new THREE.MeshBasicMaterial({ color: baseColor, transparent: true, opacity: 0.35, side: THREE.DoubleSide }),
       );
       ring.rotation.x = Math.PI / 2;
       g.add(ring);
@@ -149,29 +231,6 @@ export function GraphCanvas({ entityId: _entityId, onNodeClick, autoRotate = fal
 
     return g;
   }, []);
-
-  const transformedData = (() => {
-    const nodeIds = new Set(graphData.nodes.map(n => n.id));
-    const validLinks = graphData.links.filter(
-      l => nodeIds.has(l.source) && nodeIds.has(l.target)
-    );
-    
-    const cycleEdges = new Set<string>();
-    validLinks.forEach(l => {
-      if (cycleNodeSet.current.has(l.source) && cycleNodeSet.current.has(l.target)) {
-        cycleEdges.add(`${l.source}-${l.target}`);
-      }
-    });
-
-    return {
-      nodes: graphData.nodes.map(n => ({ ...n, riskScore: n.risk / 100 })),
-      links: validLinks.map(l => ({ 
-        source: l.source, 
-        target: l.target,
-        isCycle: cycleEdges.has(`${l.source}-${l.target}`)
-      })),
-    };
-  })();
 
   const linkColor = useCallback((link: any) => {
     if (link.isCycle) return 'rgba(239, 68, 68, 0.6)';
@@ -218,7 +277,6 @@ export function GraphCanvas({ entityId: _entityId, onNodeClick, autoRotate = fal
         />
       )}
 
-      {/* Empty State */}
       {!hasData && (
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
           <motion.div animate={{ opacity: [0.3, 0.5, 0.3] }} transition={{ duration: 4, repeat: Infinity }} className="text-center">
@@ -229,4 +287,4 @@ export function GraphCanvas({ entityId: _entityId, onNodeClick, autoRotate = fal
       )}
     </div>
   );
-}
+});
