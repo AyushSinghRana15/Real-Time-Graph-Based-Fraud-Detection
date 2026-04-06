@@ -11,21 +11,42 @@ import { SettingsOverlay } from '../components/dashboard/SettingsOverlay';
 import { UserProfileOverlay } from '../components/dashboard/UserProfileOverlay';
 import { ToastContainer } from '../components/ToastContainer';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { NetworkExplorer } from '../components/dashboard/NetworkExplorer';
+import { useRealTimeGraph } from '../hooks/useRealTime';
 
 type NavItem = typeof NAV_ITEMS[number];
 
+const RISK_THRESHOLDS = [
+  { label: 'Low (0-25%)', color: '#22c55e', minRisk: 0 },
+  { label: 'Medium (25-50%)', color: '#eab308', minRisk: 25 },
+  { label: 'High (50-75%)', color: '#f97316', minRisk: 50 },
+  { label: 'Critical (75%+)', color: '#ef4444', minRisk: 75 },
+];
+
 export function DashboardPage({ onLogout }: { onLogout: () => void }) {
   const { data: alerts = [] } = useAlerts();
-  const { toasts, removeToast } = useRealTimeAlerts(true);
+  const { toasts, removeToast, graphState } = useRealTimeAlerts(true);
+  const { graphData } = useRealTimeGraph(true, 5000);
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
   const [activeNav, setActiveNav] = useState<NavItem>('Dashboard');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isContextCollapsed, setIsContextCollapsed] = useState(true);
+  const [autoRotate, setAutoRotate] = useState(true);
 
   const isSandboxMode = activeNav === 'Sandbox';
+  const isNetworkMode = activeNav === 'Network';
   const highRiskCount = alerts.filter(a => a.type === 'high_risk').length;
+
+  const graphStats = {
+    total_nodes: graphState?.stats?.total_nodes ?? graphData.nodes.length,
+    total_edges: graphState?.stats?.total_edges ?? graphData.links.length,
+    high_risk_nodes: graphState?.stats?.high_risk_nodes ?? graphData.nodes.filter(n => n.risk > 70).length,
+    network_avg_risk: graphState?.stats?.network_avg_risk ?? (graphData.nodes.length > 0 
+      ? graphData.nodes.reduce((acc, n) => acc + n.risk, 0) / graphData.nodes.length 
+      : 0),
+  };
 
   const handleNodeClick = useCallback((node: TransactionNode) => {
     const a = alerts.find(al => al.entityId === node.id);
@@ -50,7 +71,12 @@ export function DashboardPage({ onLogout }: { onLogout: () => void }) {
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-grid opacity-20 pointer-events-none" />
         <ErrorBoundary>
-          <GraphCanvas entityId={selectedAlert?.entityId ?? null} onNodeClick={handleNodeClick} />
+          <GraphCanvas 
+            entityId={selectedAlert?.entityId ?? null} 
+            onNodeClick={handleNodeClick}
+            autoRotate={isNetworkMode && autoRotate}
+            showControls={!isNetworkMode}
+          />
         </ErrorBoundary>
       </div>
 
@@ -62,7 +88,7 @@ export function DashboardPage({ onLogout }: { onLogout: () => void }) {
         highRiskCount={highRiskCount}
       />
 
-      {!isSandboxMode && (
+      {!isSandboxMode && !isNetworkMode && (
         <>
           <HUDSidebar
             alerts={alerts}
@@ -83,6 +109,13 @@ export function DashboardPage({ onLogout }: { onLogout: () => void }) {
           )}
         </>
       )}
+
+      <NetworkExplorer
+        isActive={isNetworkMode}
+        stats={graphStats}
+        riskThresholds={RISK_THRESHOLDS}
+        onClose={() => setActiveNav('Dashboard')}
+      />
 
       <FocusSandbox 
         isActive={isSandboxMode} 

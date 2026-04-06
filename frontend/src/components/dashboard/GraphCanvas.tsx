@@ -7,11 +7,47 @@ import { useRealTimeGraph } from '../../hooks/useRealTime';
 import type { TransactionNode } from '../../types';
 import { riskColor } from '../../utils/colors';
 
-export function GraphCanvas({ entityId: _entityId, onNodeClick }: { entityId: string | null; onNodeClick: (n: TransactionNode) => void }) {
+interface GraphCanvasProps {
+  entityId?: string | null;
+  onNodeClick: (n: TransactionNode) => void;
+  autoRotate?: boolean;
+  showControls?: boolean;
+}
+
+export function GraphCanvas({ entityId: _entityId, onNodeClick, autoRotate = false, showControls = true }: GraphCanvasProps) {
   const graphRef = useRef<any>(null);
   const [dims, setDims] = useState({ w: window.innerWidth, h: window.innerHeight });
   const [isInitialized, setIsInitialized] = useState(false);
   const { graphData, isLoading } = useRealTimeGraph(true, 5000);
+
+  useEffect(() => {
+    if (graphData.nodes.length > 0) {
+      setIsInitialized(true);
+    }
+  }, [graphData.nodes.length]);
+
+  useEffect(() => {
+    const handleResize = () => setDims({ w: window.innerWidth, h: window.innerHeight });
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (graphRef.current && isInitialized) {
+      graphRef.current.d3Force('charge')?.strength(-150);
+      graphRef.current.d3Force('link')?.distance(80);
+    }
+  }, [isInitialized]);
+
+  useEffect(() => {
+    if (graphRef.current && autoRotate) {
+      const control = graphRef.current.controls();
+      if (control) {
+        control.autoRotate = true;
+        control.autoRotateSpeed = 0.5;
+      }
+    }
+  }, [autoRotate, isInitialized]);
 
   useEffect(() => {
     if (graphData.nodes.length > 0) {

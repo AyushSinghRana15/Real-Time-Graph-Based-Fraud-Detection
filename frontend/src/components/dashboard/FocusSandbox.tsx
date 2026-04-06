@@ -567,9 +567,9 @@ export function FocusSandbox({ isActive, onClose, defaultAlert }: FocusSandboxPr
               <div className="flex-1 flex flex-col overflow-hidden">
                 <div className="flex-1 overflow-y-auto p-6">
                   {activeTab === 'diagnostics' ? (
-                    <div className="max-w-4xl mx-auto">
-                      <div className="grid grid-cols-2 gap-8">
-                        <div className="space-y-5">
+                    <div className="max-w-5xl mx-auto h-full">
+                      <div className="grid grid-cols-2 gap-8 min-h-[70vh]">
+                        <div className="space-y-5 flex flex-col">
                           <div className="flex items-center gap-2">
                             <div className="w-1 h-4 rounded-full" style={{ background: 'linear-gradient(180deg, #8b5cf6 0%, #a855f7 100%)' }} />
                             <p className="text-sm font-semibold uppercase tracking-wider" style={{ color: '#a1a1aa' }}>
@@ -577,7 +577,7 @@ export function FocusSandbox({ isActive, onClose, defaultAlert }: FocusSandboxPr
                             </p>
                           </div>
 
-                          <div className="rounded-xl p-5 space-y-5" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                          <div className="flex-1 rounded-xl p-5 space-y-5" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)' }}>
                             <div className="grid grid-cols-2 gap-4">
                               <ForensicInput
                                 label="Origin Account"
@@ -678,9 +678,20 @@ export function FocusSandbox({ isActive, onClose, defaultAlert }: FocusSandboxPr
                           </motion.button>
                         </div>
 
-                        <div className="space-y-5">
+                        <div className="space-y-5 flex flex-col">
                           <div className="flex items-center gap-2">
-                            <div className="w-1 h-4 rounded-full" style={{ background: 'linear-gradient(180deg, #8b5cf6 0%, #a855f7 100%)' }} />
+                            <motion.div
+                              animate={{ 
+                                boxShadow: [
+                                  '0 0 15px rgba(139,92,246,0.3)',
+                                  '0 0 30px rgba(139,92,246,0.5)',
+                                  '0 0 15px rgba(139,92,246,0.3)'
+                                ]
+                              }}
+                              transition={{ duration: 2, repeat: Infinity }}
+                              className="w-1 h-4 rounded-full"
+                              style={{ background: 'linear-gradient(180deg, #8b5cf6 0%, #a855f7 100%)' }}
+                            />
                             <p className="text-sm font-semibold uppercase tracking-wider" style={{ color: '#a1a1aa' }}>
                               Analysis Results
                             </p>
@@ -690,9 +701,13 @@ export function FocusSandbox({ isActive, onClose, defaultAlert }: FocusSandboxPr
                             <motion.div
                               initial={{ opacity: 0, scale: 0.98 }}
                               animate={{ opacity: 1, scale: 1 }}
-                              className="space-y-4"
+                              className="flex-1 space-y-4 relative"
                             >
-                              <div className="rounded-xl p-5" style={{
+                              <div 
+                                className="absolute inset-0 rounded-2xl opacity-20 blur-3xl"
+                                style={{ background: `radial-gradient(circle at center, ${riskColorValue}40 0%, transparent 70%)` }}
+                              />
+                              <div className="relative rounded-xl p-5" style={{
                                 background: `linear-gradient(135deg, ${riskColorValue}08 0%, ${riskColorValue}05 100%)`,
                                 border: `1px solid ${riskColorValue}25`
                               }}>
@@ -704,10 +719,15 @@ export function FocusSandbox({ isActive, onClose, defaultAlert }: FocusSandboxPr
                                     <span className="text-sm font-medium" style={{ color: '#71717a' }}>Risk Score</span>
                                   </div>
                                   {prediction.is_fraud ? (
-                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)' }}>
+                                    <motion.div 
+                                      animate={{ x: [0, -2, 2, -2, 0] }}
+                                      transition={{ duration: 0.3, repeat: Infinity, repeatDelay: 2 }}
+                                      className="flex items-center gap-2 px-3 py-1.5 rounded-full" 
+                                      style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)' }}
+                                    >
                                       <AlertTriangle className="w-4 h-4" style={{ color: '#ef4444' }} />
                                       <span className="text-xs font-bold" style={{ color: '#ef4444' }}>FRAUD</span>
-                                    </div>
+                                    </motion.div>
                                   ) : (
                                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)' }}>
                                       <Sparkles className="w-4 h-4" style={{ color: '#22c55e' }} />
@@ -727,7 +747,7 @@ export function FocusSandbox({ isActive, onClose, defaultAlert }: FocusSandboxPr
                                 </div>
                               </div>
 
-                              <div className="rounded-xl p-4" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                              <div className="relative rounded-xl p-4" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)' }}>
                                 <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: '#71717a' }}>Graph Intelligence</p>
                                 <div className="space-y-2">
                                   <div className="flex items-center justify-between">
@@ -752,7 +772,7 @@ export function FocusSandbox({ isActive, onClose, defaultAlert }: FocusSandboxPr
                               </div>
 
                               {prediction.reasons && prediction.reasons.length > 0 && (
-                                <div className="rounded-xl p-4" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                <div className="relative rounded-xl p-4" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)' }}>
                                   <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: '#71717a' }}>Risk Factors</p>
                                   <div className="space-y-2">
                                     {prediction.reasons.map((reason, i) => (
@@ -767,84 +787,123 @@ export function FocusSandbox({ isActive, onClose, defaultAlert }: FocusSandboxPr
                               )}
                             </motion.div>
                           ) : (
-                            <div className="h-full rounded-xl flex flex-col items-center justify-center py-16" style={{ background: 'rgba(0,0,0,0.3)', border: '1px dashed rgba(255,255,255,0.08)' }}>
-                              <Brain className="w-16 h-16 mb-4" style={{ color: '#27272a' }} />
-                              <p className="text-base font-medium" style={{ color: '#52525b' }}>Enter transaction parameters</p>
-                              <p className="text-sm mt-1" style={{ color: '#3f3f46' }}>ML results will appear here</p>
+                            <div className="flex-1 rounded-xl flex flex-col items-center justify-center py-16 relative overflow-hidden" style={{ background: 'rgba(0,0,0,0.3)', border: '1px dashed rgba(255,255,255,0.08)' }}>
+                              <div 
+                                className="absolute inset-0 opacity-30"
+                                style={{
+                                  background: 'radial-gradient(circle at center, rgba(139,92,246,0.1) 0%, transparent 60%)'
+                                }}
+                              />
+                              <motion.div
+                                animate={{ 
+                                  scale: [1, 1.05, 1],
+                                  opacity: [0.6, 0.8, 0.6]
+                                }}
+                                transition={{ duration: 3, repeat: Infinity }}
+                              >
+                                <Brain className="w-16 h-16 mb-4 relative z-10" style={{ color: '#3f3f46' }} />
+                              </motion.div>
+                              <p className="text-base font-medium relative z-10" style={{ color: '#52525b' }}>Enter transaction parameters</p>
+                              <p className="text-sm mt-1 relative z-10" style={{ color: '#3f3f46' }}>ML results will appear here</p>
                             </div>
                           )}
                         </div>
                       </div>
                     </div>
                   ) : (
-                    <div className="max-w-2xl mx-auto space-y-4">
-                      {messages.length === 0 && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="text-center py-12"
-                        >
-                          <Terminal className="w-12 h-12 mx-auto mb-4" style={{ color: '#52525b' }} />
-                          <p className="text-sm mb-6" style={{ color: '#71717a' }}>
-                            {hasPrediction ? 'Context attached. Ask about fraud patterns, risk assessment, or transaction analysis.' : 'Run a simulation first or ask general questions about fraud detection.'}
-                          </p>
-                          <div className="flex flex-wrap justify-center gap-2">
-                            {SUGGESTIONS.map((s) => (
-                              <button
-                                key={s.label}
-                                onClick={() => setInput(s.prompt)}
-                                className="px-3 py-1.5 rounded-lg text-xs"
-                                style={{ background: 'rgba(139,92,246,0.1)', color: '#a855f7', border: '1px solid rgba(139,92,246,0.2)' }}
-                              >
-                                {s.label}
-                              </button>
-                            ))}
-                          </div>
-                        </motion.div>
-                      )}
-
-                      {messages.map((msg) => (
-                        <motion.div
-                          key={msg.id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                        >
-                          <div className="max-w-xl">
-                            {msg.hasContext && msg.role === 'assistant' && (
-                              <div className="flex items-center gap-1.5 mb-2">
-                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#a855f7' }} />
-                                <span className="text-[10px]" style={{ color: '#a855f7' }}>Based on simulation data</span>
-                              </div>
-                            )}
-                            <div
-                              className="rounded-2xl px-4 py-3"
-                              style={{
-                                background: msg.role === 'user' ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.03)',
-                                border: msg.role === 'assistant' ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                    <div className="h-full flex flex-col">
+                      <div className="max-w-[70%] mx-auto w-full flex-1 overflow-y-auto space-y-6 py-4">
+                        {messages.length === 0 && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="text-center py-16"
+                          >
+                            <motion.div
+                              animate={{ 
+                                boxShadow: [
+                                  '0 0 20px rgba(139,92,246,0.2)',
+                                  '0 0 40px rgba(139,92,246,0.4)',
+                                  '0 0 20px rgba(139,92,246,0.2)'
+                                ]
                               }}
+                              transition={{ duration: 3, repeat: Infinity }}
+                              className="inline-block p-4 rounded-2xl mb-4"
+                              style={{ background: 'rgba(139,92,246,0.1)' }}
                             >
-                              <p className="text-sm whitespace-pre-wrap" style={{ color: '#e4e4e7' }}>{msg.content}</p>
-                              <p className="text-[10px] mt-1" style={{ color: '#52525b' }}>
-                                {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </p>
+                              <Terminal className="w-12 h-12" style={{ color: '#a855f7' }} />
+                            </motion.div>
+                            <p className="text-sm mb-6" style={{ color: '#71717a' }}>
+                              {hasPrediction ? 'Context attached. Ask about fraud patterns, risk assessment, or transaction analysis.' : 'Run a simulation first or ask general questions about fraud detection.'}
+                            </p>
+                            <div className="flex flex-wrap justify-center gap-2">
+                              {SUGGESTIONS.map((s) => (
+                                <motion.button
+                                  key={s.label}
+                                  onClick={() => setInput(s.prompt)}
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  className="px-3 py-1.5 rounded-lg text-xs"
+                                  style={{ background: 'rgba(139,92,246,0.1)', color: '#a855f7', border: '1px solid rgba(139,92,246,0.2)' }}
+                                >
+                                  {s.label}
+                                </motion.button>
+                              ))}
                             </div>
-                          </div>
-                        </motion.div>
-                      ))}
+                          </motion.div>
+                        )}
 
-                      {isProcessing && (
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          className="flex items-center gap-2"
-                        >
-                          <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#a855f7' }} />
-                          <span className="text-xs" style={{ color: '#71717a' }}>Analyzing...</span>
-                        </motion.div>
-                      )}
+                        {messages.map((msg) => (
+                          <motion.div
+                            key={msg.id}
+                            initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                          >
+                            <div className="w-full max-w-3xl">
+                              {msg.hasContext && msg.role === 'assistant' && (
+                                <div className="flex items-center gap-1.5 mb-2">
+                                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#a855f7' }} />
+                                  <span className="text-[10px]" style={{ color: '#a855f7' }}>Based on simulation data</span>
+                                </div>
+                              )}
+                              <div
+                                className="rounded-2xl px-5 py-4"
+                                style={{
+                                  background: msg.role === 'user' 
+                                    ? 'linear-gradient(135deg, rgba(139,92,246,0.2) 0%, rgba(139,92,246,0.1) 100%)' 
+                                    : 'rgba(255,255,255,0.02)',
+                                  border: msg.role === 'assistant' ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(139,92,246,0.2)',
+                                  boxShadow: msg.role === 'assistant' ? '0 4px 24px rgba(0,0,0,0.2)' : 'none'
+                                }}
+                              >
+                                <p className="text-sm whitespace-pre-wrap leading-relaxed" style={{ color: '#e4e4e7' }}>{msg.content}</p>
+                                <p className="text-[10px] mt-2" style={{ color: '#52525b' }}>
+                                  {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))}
 
-                      <div ref={messagesEndRef} />
+                        {isProcessing && (
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="flex items-center gap-3"
+                          >
+                            <motion.div
+                              animate={{ scale: [1, 1.2, 1] }}
+                              transition={{ duration: 1.5, repeat: Infinity }}
+                            >
+                              <Brain className="w-5 h-5" style={{ color: '#a855f7' }} />
+                            </motion.div>
+                            <span className="text-xs" style={{ color: '#71717a' }}>LLM is analyzing transaction patterns...</span>
+                          </motion.div>
+                        )}
+
+                        <div ref={messagesEndRef} />
+                      </div>
                     </div>
                   )}
                 </div>
