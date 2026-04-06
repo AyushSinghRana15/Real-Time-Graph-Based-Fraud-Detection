@@ -6,6 +6,7 @@ import networkx as nx
 from collections import deque
 import random
 from .mock_data import graph_state
+from .db_models import init_db, seed_database, UserRepository, TransactionRepository
 
 MODEL_PATH = Path(__file__).parent.parent.parent / "Model"
 MODEL_FILE = MODEL_PATH / "model.pkl"
@@ -18,8 +19,11 @@ class MLService:
         self.feature_columns: list = []
         self.graph = nx.DiGraph()
         self.node_risk_scores: dict[str, float] = {}
+        self.username_map: dict[str, str] = {}
         self._load_model()
-        self._initialize_graph_from_state()
+        init_db()
+        seed_database()
+        self._initialize_graph_from_db()
 
     def _load_model(self):
         try:
@@ -33,17 +37,23 @@ class MLService:
             self.model = None
             self.feature_columns = []
 
-    def _initialize_graph_from_state(self):
-        for node in graph_state.nodes:
-            self.graph.add_node(node.id, label=node.label, type=node.type)
-            self.node_risk_scores[node.id] = float(node.risk) / 100
+    def _initialize_graph_from_db(self):
+        graph_data = TransactionRepository.get_graph_data()
         
-        for node in graph_state.nodes:
-            for conn in node.connections:
-                if self.graph.has_node(conn):
-                    self.graph.add_edge(node.id, conn)
+        for user in graph_data["users"]:
+            node_id = user["id"]
+            username = user["username"]
+            self.graph.add_node(node_id, label=username, type=user["user_type"])
+            self.node_risk_scores[node_id] = user["risk_score"] / 100
+            self.username_map[node_id] = username
         
-        print(f"Graph initialized with {self.graph.number_of_nodes()} nodes and {self.graph.number_of_edges()} edges")
+        for tx in graph_data["transactions"]:
+            self.graph.add_edge(tx["source"], tx["target"], amount=tx["amount"])
+        
+        if self.graph.number_of_nodes() == 0:
+            self._initialize_graph_from_state()
+        
+        print(f"Graph initialized with {self.graph.number_of_nodes()} nodes and {self.graph.number_of_edges()} edges from database")
 
     def is_available(self) -> bool:
         return self.model is not None
@@ -52,6 +62,18 @@ class MLService:
         sender = transaction_data.get("sender_id", transaction_data.get("source", "UNKNOWN"))
         receiver = transaction_data.get("receiver_id", transaction_data.get("destination", "UNKNOWN"))
         amount = transaction_data.get("amount", 0)
+        tx_type = transaction_data.get("type", "TRANSFER")
+
+        sender_info = UserRepository.get_by_id(sender)
+        receiver_info = UserRepository.get_by_id(receiver)
+        
+        if not sender_info:
+            sender = UserRepository.create(sender, "User", 50.0)
+            sender_info = UserRepository.get_by_id(sender)
+        
+        if not receiver_info:
+            receiver = UserRepository.create(receiver, "User", 50.0)
+            receiver_info = UserRepository.get_by_id(receiver)
 
         ml_prob = self._get_ml_probability(transaction_data)
         graph_metrics = self._calculate_graph_metrics(sender, receiver)
@@ -70,14 +92,27 @@ class MLService:
         is_fraud = final_probability >= 70
 
         risk = int(final_probability)
-        source_node, target_node = graph_state.add_edge(sender, receiver, amount, risk)
         
-        self.graph.add_node(sender, label=sender, type="account")
-        self.graph.add_node(receiver, label=receiver, type="account")
+        self.graph.add_node(sender, label=sender_info["username"] if sender_info else sender, type="account")
+        self.graph.add_node(receiver, label=receiver_info["username"] if receiver_info else receiver, type="account")
         self.graph.add_edge(sender, receiver, amount=amount)
+        
+        if sender_info:
+            self.username_map[sender] = sender_info["username"]
+        if receiver_info:
+            self.username_map[receiver] = receiver_info["username"]
         
         self.node_risk_scores[sender] = self.node_risk_scores.get(sender, 0) * 0.8 + (risk / 100) * 0.2
         self.node_risk_scores[receiver] = self.node_risk_scores.get(receiver, 0) * 0.8 + (risk / 100) * 0.2
+        
+        tx_id = TransactionRepository.create(
+            sender_id=sender,
+            receiver_id=receiver,
+            amount=amount,
+            transaction_type=tx_type,
+            is_flagged=is_fraud,
+            fraud_probability=final_probability
+        )
 
         graph_metrics["amount_boost"] = amount_boost
         graph_metrics["total_boost"] = round(graph_metrics["total_boost"] + amount_boost, 1)
@@ -94,8 +129,11 @@ class MLService:
             "graph_metrics": graph_metrics,
             "transaction": {
                 "sender": sender,
+                "sender_name": self.username_map.get(sender, sender),
                 "receiver": receiver,
-                "amount": amount
+                "receiver_name": self.username_map.get(receiver, receiver),
+                "amount": amount,
+                "tx_id": tx_id
             }
         }
 
@@ -325,15 +363,36 @@ class MLService:
         return "low"
 
     def get_graph_state(self) -> dict:
+        graph_data = TransactionRepository.get_graph_data()
+        
+        nodes = []
+        for user in graph_data["users"]:
+            nodes.append({
+                "id": user["id"],
+                "type": user["user_type"].lower(),
+                "label": user["username"],
+                "risk": user["risk_score"],
+                "tooltip": f"0x{user['id'][2:]}" if user["id"].startswith("0x") else user["id"]
+            })
+        
+        edges = []
+        for tx in graph_data["transactions"]:
+            edges.append({
+                "source": tx["source"],
+                "target": tx["target"],
+                "amount": tx["amount"],
+                "isFlagged": tx["is_flagged"] == 1
+            })
+        
         return {
-            "nodes": graph_state.nodes,
-            "edges": graph_state.get_edges_for_graph(),
+            "nodes": nodes,
+            "edges": edges,
             "node_risks": {k: round(v, 3) for k, v in self.node_risk_scores.items()},
             "stats": {
-                "total_nodes": len(graph_state.nodes),
-                "total_edges": len(graph_state.edges),
-                "high_risk_nodes": sum(1 for v in self.node_risk_scores.values() if v > 0.7),
-                "network_avg_risk": round(sum(self.node_risk_scores.values()) / max(len(self.node_risk_scores), 1), 3)
+                "total_nodes": len(nodes),
+                "total_edges": len(edges),
+                "high_risk_nodes": sum(1 for user in graph_data["users"] if user["risk_score"] > 70),
+                "network_avg_risk": round(sum(user["risk_score"] for user in graph_data["users"]) / max(len(graph_data["users"]), 1), 1)
             }
         }
 
@@ -343,19 +402,17 @@ class MLService:
         edges = []
         
         for i in range(num_nodes):
-            node_id = f"ATTACK-{prefix[-6:]}-{i:02d}"
+            node_id = UserRepository.create(
+                f"Fraud Node {i+1}",
+                "Fraudulent",
+                random.randint(70, 99)
+            )
             label = f"Fraud Node {i+1}"
             risk_score = random.randint(70, 99)
             nodes.append({"id": node_id, "label": label, "risk": risk_score})
             self.node_risk_scores[node_id] = risk_score / 100
-            
-            graph_state.nodes.append(type('obj', (object,), {
-                'id': node_id,
-                'label': label,
-                'type': 'account',
-                'risk': risk_score,
-                'connections': []
-            })())
+            self.username_map[node_id] = label
+            self.graph.add_node(node_id, label=label, type="fraud")
         
         patterns = ["cycle", "hub", "fan_in"]
         pattern = random.choice(patterns)
@@ -363,27 +420,32 @@ class MLService:
         for i in range(num_nodes):
             if pattern == "cycle":
                 next_i = (i + 1) % num_nodes
-                edge = (nodes[i]["id"], nodes[next_i]["id"])
+                edge_source, edge_target = nodes[i]["id"], nodes[next_i]["id"]
             elif pattern == "hub":
                 hub_idx = num_nodes // 2
                 if i != hub_idx:
-                    edge = (nodes[i]["id"], nodes[hub_idx]["id"])
+                    edge_source, edge_target = nodes[i]["id"], nodes[hub_idx]["id"]
                 else:
                     continue
             else:
                 sink_idx = num_nodes - 1
                 if i != sink_idx:
-                    edge = (nodes[i]["id"], nodes[sink_idx]["id"])
+                    edge_source, edge_target = nodes[i]["id"], nodes[sink_idx]["id"]
                 else:
                     continue
             
-            edges.append({"source": edge[0], "target": edge[1], "amount": random.randint(50000, 500000)})
-            self.graph.add_edge(edge[0], edge[1])
-            graph_state.edges[edge] = {"amount": edges[-1]["amount"]}
+            amount = random.randint(50000, 500000)
+            edges.append({"source": edge_source, "target": edge_target, "amount": amount})
+            self.graph.add_edge(edge_source, edge_target, amount=amount)
             
-            for node in graph_state.nodes:
-                if node.id == edge[0] and edge[1] not in node.connections:
-                    node.connections.append(edge[1])
+            TransactionRepository.create(
+                sender_id=edge_source,
+                receiver_id=edge_target,
+                amount=amount,
+                transaction_type="TRANSFER",
+                is_flagged=True,
+                fraud_probability=risk_score
+            )
         
         return {
             "pattern": pattern,

@@ -127,17 +127,31 @@ def get_alert(alert_id: str):
 
 @app.get("/api/transactions")
 def get_transactions():
-    return transactions_cache
+    from .db_models import TransactionRepository
+    return TransactionRepository.get_recent_transactions(100)
 
 
 @app.get("/api/nodes")
 def get_nodes():
-    return graph_state.nodes
+    from .db_models import UserRepository
+    users = UserRepository.get_all()
+    return [
+        {
+            "id": u["id"],
+            "type": u["user_type"].lower(),
+            "label": u["username"],
+            "risk": u["risk_score"],
+            "connections": []
+        }
+        for u in users
+    ]
 
 
 @app.get("/api/edges")
 def get_edges():
-    return graph_state.get_edges_for_graph()
+    from .db_models import TransactionRepository
+    txns = TransactionRepository.get_all()
+    return [{"source": t["sender_id"], "target": t["receiver_id"], "amount": t["amount"]} for t in txns]
 
 
 @app.get("/api/graph/state")
