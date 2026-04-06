@@ -1,11 +1,264 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Terminal, Brain, X, Send, Loader2, Shield, AlertTriangle, Sparkles, TrendingUp, Zap } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { Terminal, Brain, X, Send, Loader2, Shield, AlertTriangle, Sparkles, TrendingUp, Zap, ChevronUp, ChevronDown, HelpCircle } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { riskColor } from '../../utils/colors';
 import { GraphCanvas } from './GraphCanvas';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { simulateAttack } from '../../api/fraudApi';
+
+const AMOUNT_MAX = 10000000;
+const AMOUNT_THRESHOLDS = [
+  { value: 100000, color: '#22c55e' },
+  { value: 500000, color: '#eab308' },
+  { value: 1000000, color: '#f97316' },
+  { value: AMOUNT_MAX, color: '#ef4444' },
+];
+
+const QUICK_AMOUNTS = [10000, 50000, 100000, 500000];
+
+function getAmountColor(amount: number): string {
+  for (const t of AMOUNT_THRESHOLDS) {
+    if (amount <= t.value) return t.color;
+  }
+  return AMOUNT_THRESHOLDS[AMOUNT_THRESHOLDS.length - 1].color;
+}
+
+interface SmartScrollerProps {
+  value: number;
+  onChange: (v: number) => void;
+  min?: number;
+  max?: number;
+  step?: number;
+  label: string;
+  tooltip?: string;
+  isRisk?: boolean;
+  riskColor?: string;
+  showQuickToggles?: boolean;
+  quickAmounts?: number[];
+  prefix?: string;
+  suffix?: string;
+}
+
+function SmartScroller({ 
+  value, onChange, min = 0, max, step = 1, label, tooltip, 
+  isRisk = false, riskColor: borderColor = '#8b5cf6',
+  showQuickToggles = false, quickAmounts = QUICK_AMOUNTS,
+  prefix = '', suffix = ''
+}: SmartScrollerProps) {
+  const [isFocused, setIsFocused] = useState(false);
+  
+  const adjust = useCallback((delta: number) => {
+    const newVal = Math.min(max ?? Infinity, Math.max(min, value + delta));
+    onChange(Math.round(newVal / step) * step);
+  }, [value, min, max, step, onChange]);
+
+  const quickAdjust = (delta: number) => {
+    adjust(delta);
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <label className="text-xs font-medium text-zinc-400">{label}</label>
+        {tooltip && (
+          <HelpCircle className="w-3 h-3 text-zinc-600" title={tooltip} />
+        )}
+      </div>
+      <div className="relative">
+        <div className="flex items-center">
+          <motion.button
+            whileTap={{ scale: 0.92 }}
+            onClick={() => adjust(-step)}
+            className="h-11 w-10 flex items-center justify-center rounded-l-lg border-r"
+            style={{ 
+              background: 'rgba(255,255,255,0.03)', 
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRightColor: 'rgba(255,255,255,0.04)'
+            }}
+          >
+            <ChevronDown className="w-4 h-4 text-zinc-500" />
+          </motion.button>
+          
+          <div className="flex-1 relative">
+            <input
+              type="number"
+              value={value}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                if (!isNaN(v)) onChange(Math.min(max ?? v, Math.max(min, v)));
+              }}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              className="w-full h-11 px-3 text-center text-sm outline-none"
+              style={{ 
+                background: 'rgba(255,255,255,0.03)', 
+                border: `1px solid ${isRisk ? borderColor : 'rgba(255,255,255,0.08)'}`,
+                borderLeftColor: 'rgba(255,255,255,0.04)',
+                borderRightColor: 'rgba(255,255,255,0.04)',
+                color: '#fafafa',
+                boxShadow: isRisk ? `0 0 12px ${borderColor}30, inset 0 0 8px ${borderColor}10` : 'none',
+              }}
+            />
+            {(prefix || suffix) && (
+              <span className="absolute top-1/2 -translate-y-1/2 text-xs text-zinc-500 pointer-events-none">
+                {prefix && <span className="ml-2">{prefix}</span>}
+                {suffix && <span className="mr-2">{suffix}</span>}
+              </span>
+            )}
+          </div>
+          
+          <motion.button
+            whileTap={{ scale: 0.92 }}
+            onClick={() => adjust(step)}
+            className="h-11 w-10 flex items-center justify-center rounded-r-lg border-l"
+            style={{ 
+              background: 'rgba(255,255,255,0.03)', 
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderLeftColor: 'rgba(255,255,255,0.04)'
+            }}
+          >
+            <ChevronUp className="w-4 h-4 text-zinc-500" />
+          </motion.button>
+        </div>
+        
+        <AnimatePresence>
+          {showQuickToggles && isFocused && (
+            <motion.div 
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              className="absolute -top-10 left-1/2 -translate-x-1/2 flex gap-1"
+            >
+              {quickAmounts.map((amt) => (
+                <button
+                  key={amt}
+                  onClick={() => quickAdjust(amt)}
+                  className="px-2 py-1 rounded text-[10px] font-medium"
+                  style={{ 
+                    background: 'rgba(139,92,246,0.2)', 
+                    color: '#a855f7',
+                    border: '1px solid rgba(139,92,246,0.3)'
+                  }}
+                >
+                  +{amt >= 1000 ? `$${amt/1000}K` : `$${amt}`}
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+interface RiskSliderProps {
+  value: number;
+  onChange: (v: number) => void;
+  max?: number;
+  label?: string;
+}
+
+function RiskSlider({ value, onChange, max = AMOUNT_MAX, label }: RiskSliderProps) {
+  const percentage = Math.min(100, (value / max) * 100);
+  const color = getAmountColor(value);
+  
+  return (
+    <div className="space-y-2">
+      {label && (
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-medium text-zinc-500">{label}</label>
+          <span className="text-xs font-mono" style={{ color }}>${value.toLocaleString()}</span>
+        </div>
+      )}
+      <div className="relative h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
+        <motion.div 
+          className="absolute inset-y-0 left-0 rounded-full"
+          initial={{ width: 0 }}
+          animate={{ width: `${percentage}%` }}
+          transition={{ duration: 0.15 }}
+          style={{ background: `linear-gradient(90deg, #22c55e 0%, ${color} 100%)`, boxShadow: `0 0 8px ${color}` }}
+        />
+        <input
+          type="range"
+          min={0}
+          max={max}
+          step={1000}
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+        />
+      </div>
+      <div className="flex justify-between text-[10px] text-zinc-600">
+        <span>$0</span>
+        <span>$1M</span>
+        <span>$10M</span>
+      </div>
+    </div>
+  );
+}
+
+interface TextInputProps {
+  value: string;
+  onChange: (v: string) => void;
+  label: string;
+  tooltip?: string;
+  suggestions?: string[];
+  isAlert?: boolean;
+}
+
+function ForensicInput({ value, onChange, label, tooltip, suggestions = [], isAlert = false }: TextInputProps) {
+  const [isFocused, setIsFocused] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const filtered = suggestions.filter(s => s.toLowerCase().includes(value.toLowerCase()) && s !== value);
+  
+  return (
+    <div className="space-y-2 relative">
+      <div className="flex items-center gap-2">
+        <label className="text-xs font-medium text-zinc-400">{label}</label>
+        {tooltip && (
+          <HelpCircle className="w-3 h-3 text-zinc-600" title={tooltip} />
+        )}
+      </div>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onFocus={() => { setIsFocused(true); setShowDropdown(true); }}
+        onBlur={() => { setIsFocused(false); setTimeout(() => setShowDropdown(false), 150); }}
+        className="w-full h-11 px-4 rounded-lg text-sm outline-none"
+        style={{ 
+          background: 'rgba(255,255,255,0.03)', 
+          border: `1px solid ${isAlert ? '#f59e0b' : 'rgba(255,255,255,0.08)'}`,
+          color: '#fafafa',
+          boxShadow: isAlert ? '0 0 12px rgba(245,158,11,0.2)' : 'none'
+        }}
+      />
+      <AnimatePresence>
+        {showDropdown && filtered.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            className="absolute z-20 w-full mt-1 rounded-lg overflow-hidden"
+            style={{ background: '#18181b', border: '1px solid rgba(255,255,255,0.1)' }}
+          >
+            {filtered.slice(0, 5).map((s) => (
+              <button
+                key={s}
+                onMouseDown={() => { onChange(s); setShowDropdown(false); }}
+                className="w-full px-3 py-2 text-left text-xs hover:bg-zinc-800"
+                style={{ color: '#a1a1aa' }}
+              >
+                {s}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 interface Message {
   id: string;
@@ -55,6 +308,12 @@ const SUGGESTIONS = [
   { label: 'Analyze suspicious pattern', prompt: 'Analyze this transaction pattern for potential fraud indicators based on the current simulation data.' },
   { label: 'Risk assessment', prompt: 'Provide a detailed risk assessment for this transaction based on the ML results.' },
   { label: 'Graph analysis', prompt: 'Run a deep graph analysis on this transaction network and explain the cycle detection findings.' },
+];
+
+const ENTITY_SUGGESTIONS = [
+  'ENT-100', 'ENT-101', 'ENT-102', 'ENT-103', 'ENT-104',
+  'ENT-200', 'ENT-201', 'ENT-202', 'ENT-203',
+  'ATTACK-148faf-00', 'ATTACK-148faf-01', 'ATTACK-148faf-02',
 ];
 
 export function FocusSandbox({ isActive, onClose, defaultAlert }: FocusSandboxProps) {
@@ -230,6 +489,9 @@ export function FocusSandbox({ isActive, onClose, defaultAlert }: FocusSandboxPr
 
   const riskColorValue = prediction ? riskColor(prediction.fraud_probability / 100) : '#8b5cf6';
   const hasPrediction = prediction !== null;
+  const amountRisk = formData.amount > 100000;
+  const balanceAlert = formData.amount > formData.oldbalanceOrg;
+  const btnGlow = amountRisk ? getAmountColor(formData.amount) : '#8b5cf6';
 
   return (
     <AnimatePresence>
@@ -258,8 +520,8 @@ export function FocusSandbox({ isActive, onClose, defaultAlert }: FocusSandboxPr
                   <Brain className="w-5 h-5" style={{ color: '#a855f7' }} />
                 </div>
                 <div>
-                  <h1 className="text-lg font-bold" style={{ color: '#fafafa', fontFamily: 'Space Grotesk, sans-serif' }}>Neural Sandbox</h1>
-                  <p className="text-xs" style={{ color: '#52525b' }}>Hybrid ML + LLM Intelligence</p>
+                  <h1 className="text-lg font-bold" style={{ color: '#fafafa', fontFamily: 'Space Grotesk, sans-serif' }}>Forensic Lab</h1>
+                  <p className="text-xs" style={{ color: '#52525b' }}>Tactile Command Interface</p>
                 </div>
                 {hasPrediction && (
                   <motion.div
@@ -315,47 +577,50 @@ export function FocusSandbox({ isActive, onClose, defaultAlert }: FocusSandboxPr
                             </p>
                           </div>
 
-                          <div className="rounded-xl p-5 space-y-4" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                          <div className="rounded-xl p-5 space-y-5" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)' }}>
                             <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                <label className="text-xs font-medium uppercase tracking-wider" style={{ color: '#71717a' }}>Sender ID</label>
-                                <input
-                                  type="text"
-                                  value={formData.sender_id}
-                                  onChange={(e) => setFormData({ ...formData, sender_id: e.target.value })}
-                                  className="w-full h-11 px-4 rounded-lg text-sm outline-none transition-all"
-                                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#fafafa' }}
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <label className="text-xs font-medium uppercase tracking-wider" style={{ color: '#71717a' }}>Receiver ID</label>
-                                <input
-                                  type="text"
-                                  value={formData.receiver_id}
-                                  onChange={(e) => setFormData({ ...formData, receiver_id: e.target.value })}
-                                  className="w-full h-11 px-4 rounded-lg text-sm outline-none transition-all"
-                                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#fafafa' }}
-                                />
-                              </div>
+                              <ForensicInput
+                                label="Origin Account"
+                                tooltip="The sending account identifier"
+                                value={formData.sender_id}
+                                onChange={(v) => setFormData({ ...formData, sender_id: v })}
+                                suggestions={ENTITY_SUGGESTIONS}
+                              />
+                              <ForensicInput
+                                label="Destination Account"
+                                tooltip="The receiving account identifier"
+                                value={formData.receiver_id}
+                                onChange={(v) => setFormData({ ...formData, receiver_id: v })}
+                                suggestions={ENTITY_SUGGESTIONS}
+                              />
+                            </div>
+
+                            <div className="space-y-3">
+                              <SmartScroller
+                                label="Transaction Amount"
+                                tooltip="Total value of the transaction"
+                                value={formData.amount}
+                                onChange={(v) => setFormData({ ...formData, amount: v })}
+                                min={0}
+                                max={AMOUNT_MAX}
+                                step={1000}
+                                isRisk
+                                riskColor={getAmountColor(formData.amount)}
+                                showQuickToggles
+                              />
+                              <RiskSlider
+                                value={formData.amount}
+                                onChange={(v) => setFormData({ ...formData, amount: v })}
+                              />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                               <div className="space-y-2">
-                                <label className="text-xs font-medium uppercase tracking-wider" style={{ color: '#71717a' }}>Amount ($)</label>
-                                <input
-                                  type="number"
-                                  value={formData.amount}
-                                  onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })}
-                                  className="w-full h-11 px-4 rounded-lg text-sm outline-none transition-all"
-                                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#fafafa' }}
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <label className="text-xs font-medium uppercase tracking-wider" style={{ color: '#71717a' }}>Type</label>
+                                <label className="text-xs font-medium text-zinc-400">Transaction Type</label>
                                 <select
                                   value={formData.type}
                                   onChange={(e) => setFormData({ ...formData, type: e.target.value as typeof TRANSACTION_TYPES[number] })}
-                                  className="w-full h-11 px-4 rounded-lg text-sm outline-none transition-all cursor-pointer"
+                                  className="w-full h-11 px-4 rounded-lg text-sm outline-none cursor-pointer"
                                   style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#fafafa' }}
                                 >
                                   {TRANSACTION_TYPES.map((type) => (
@@ -366,26 +631,24 @@ export function FocusSandbox({ isActive, onClose, defaultAlert }: FocusSandboxPr
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                <label className="text-xs font-medium uppercase tracking-wider" style={{ color: '#71717a' }}>Sender Balance</label>
-                                <input
-                                  type="number"
-                                  value={formData.oldbalanceOrg}
-                                  onChange={(e) => setFormData({ ...formData, oldbalanceOrg: Number(e.target.value) })}
-                                  className="w-full h-11 px-4 rounded-lg text-sm outline-none transition-all"
-                                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#fafafa' }}
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <label className="text-xs font-medium uppercase tracking-wider" style={{ color: '#71717a' }}>Receiver Balance</label>
-                                <input
-                                  type="number"
-                                  value={formData.oldbalanceDest}
-                                  onChange={(e) => setFormData({ ...formData, oldbalanceDest: Number(e.target.value) })}
-                                  className="w-full h-11 px-4 rounded-lg text-sm outline-none transition-all"
-                                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#fafafa' }}
-                                />
-                              </div>
+                              <SmartScroller
+                                label="Origin Balance"
+                                tooltip="Account balance before transaction"
+                                value={formData.oldbalanceOrg}
+                                onChange={(v) => setFormData({ ...formData, oldbalanceOrg: v })}
+                                min={0}
+                                step={1000}
+                                isRisk={formData.amount > formData.oldbalanceOrg}
+                                riskColor={formData.amount > formData.oldbalanceOrg ? '#ef4444' : '#8b5cf6'}
+                              />
+                              <SmartScroller
+                                label="Destination Balance"
+                                tooltip="Account balance before transaction"
+                                value={formData.oldbalanceDest}
+                                onChange={(v) => setFormData({ ...formData, oldbalanceDest: v })}
+                                min={0}
+                                step={1000}
+                              />
                             </div>
                           </div>
 
@@ -396,8 +659,9 @@ export function FocusSandbox({ isActive, onClose, defaultAlert }: FocusSandboxPr
                             whileTap={{ scale: 0.99 }}
                             className="w-full h-12 rounded-xl font-semibold text-sm flex items-center justify-center gap-3 disabled:opacity-50"
                             style={{
-                              background: 'linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%)',
-                              boxShadow: '0 4px 20px rgba(139,92,246,0.4)',
+                              background: `linear-gradient(135deg, ${amountRisk ? '#ef4444' : '#8b5cf6'} 0%, ${amountRisk ? '#f97316' : '#a855f7'} 100%)`,
+                              boxShadow: `0 4px 20px ${btnGlow}66`,
+                              border: amountRisk ? '1px solid rgba(239,68,68,0.3)' : '1px solid rgba(139,92,246,0.3)',
                             }}
                           >
                             {isAnalyzing ? (

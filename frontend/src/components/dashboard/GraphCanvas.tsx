@@ -3,19 +3,21 @@ import { motion } from 'framer-motion';
 import { Network } from 'lucide-react';
 import ForceGraph3D from 'react-force-graph-3d';
 import * as THREE from 'three';
-import { useQuery } from '@tanstack/react-query';
-import { fetchNodes } from '../../api/fraudApi';
+import { useRealTimeGraph } from '../../hooks/useRealTime';
 import type { TransactionNode } from '../../types';
 import { riskColor } from '../../utils/colors';
 
 export function GraphCanvas({ entityId: _entityId, onNodeClick }: { entityId: string | null; onNodeClick: (n: TransactionNode) => void }) {
   const graphRef = useRef<any>(null);
   const [dims, setDims] = useState({ w: window.innerWidth, h: window.innerHeight });
-  const { data: nodes, isLoading } = useQuery({
-    queryKey: ['nodes'],
-    queryFn: fetchNodes,
-    refetchInterval: 30000,
-  });
+  const [isInitialized, setIsInitialized] = useState(false);
+  const { graphData, isLoading } = useRealTimeGraph(true, 5000);
+
+  useEffect(() => {
+    if (graphData.nodes.length > 0) {
+      setIsInitialized(true);
+    }
+  }, [graphData.nodes.length]);
 
   useEffect(() => {
     const handleResize = () => setDims({ w: window.innerWidth, h: window.innerHeight });
@@ -24,11 +26,11 @@ export function GraphCanvas({ entityId: _entityId, onNodeClick }: { entityId: st
   }, []);
 
   useEffect(() => {
-    if (graphRef.current) {
+    if (graphRef.current && isInitialized) {
       graphRef.current.d3Force('charge')?.strength(-150);
       graphRef.current.d3Force('link')?.distance(80);
     }
-  }, [nodes]);
+  }, [isInitialized]);
 
   const nodeObj = useCallback((node: any) => {
     const score = node.riskScore ?? node.risk / 100;
@@ -60,19 +62,25 @@ export function GraphCanvas({ entityId: _entityId, onNodeClick }: { entityId: st
     return g;
   }, []);
 
-  const graphData = nodes ? {
-    nodes: nodes.map(n => ({ ...n, riskScore: n.risk / 100 })),
-    links: nodes.flatMap(n => n.connections.map(targetId => ({ source: n.id, target: targetId }))),
-  } : { nodes: [], links: [] };
+  const transformedData = (() => {
+    const nodeIds = new Set(graphData.nodes.map(n => n.id));
+    const validLinks = graphData.links.filter(
+      l => nodeIds.has(l.source) && nodeIds.has(l.target)
+    );
+    return {
+      nodes: graphData.nodes.map(n => ({ ...n, riskScore: n.risk / 100 })),
+      links: validLinks.map(l => ({ source: l.source, target: l.target })),
+    };
+  })();
 
-  const hasData = nodes && nodes.length > 0;
+  const hasData = transformedData.nodes.length > 0;
 
   return (
     <div className="absolute inset-0 z-0 overflow-hidden" style={{ background: '#09090b' }}>
       {hasData && (
         <ForceGraph3D
           ref={graphRef}
-          graphData={graphData}
+          graphData={transformedData}
           nodeId="id"
           nodeLabel="label"
           nodeThreeObject={nodeObj}
@@ -84,7 +92,12 @@ export function GraphCanvas({ entityId: _entityId, onNodeClick }: { entityId: st
           linkDirectionalParticleColor={() => '#f59e0b'}
           linkDirectionalParticleSpeed={0.005}
           onNodeClick={(n: any) => onNodeClick(n as TransactionNode)}
-          cooldownTicks={150}
+          cooldownTicks={100}
+          onEngineStop={() => {
+            if (graphRef.current) {
+              graphRef.current.zoomToFit(400, 50);
+            }
+          }}
           backgroundColor="#09090b"
           width={dims.w}
           height={dims.h}
