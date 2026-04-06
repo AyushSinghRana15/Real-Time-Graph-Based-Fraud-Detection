@@ -224,7 +224,7 @@ function LoginCard({ onLogin }: LoginCardProps) {
             </p>
           </motion.div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -239,8 +239,9 @@ function LoginCard({ onLogin }: LoginCardProps) {
                   onFocus={() => setIsFocused('email')}
                   onBlur={() => setIsFocused(null)}
                   placeholder="Enter your email"
-                  className="w-full h-12 pl-11 pr-4 rounded-xl text-sm bg-transparent border transition-all duration-300"
+                  className="w-full h-12 pr-4 rounded-xl text-sm bg-transparent border transition-all duration-300"
                   style={{
+                    paddingLeft: '3rem',
                     background: 'rgba(255,255,255,0.02)',
                     borderColor: isFocused === 'email' ? 'rgba(244,63,94,0.5)' : 'rgba(255,255,255,0.06)',
                     color: '#fafafa',
@@ -248,6 +249,7 @@ function LoginCard({ onLogin }: LoginCardProps) {
                     boxShadow: isFocused === 'email' ? '0 0 0 3px rgba(244,63,94,0.1)' : 'none',
                   }}
                 />
+                <style>{`input::placeholder { color: #a1a1aa !important; opacity: 1; }`}</style>
               </div>
             </motion.div>
 
@@ -265,8 +267,9 @@ function LoginCard({ onLogin }: LoginCardProps) {
                   onFocus={() => setIsFocused('password')}
                   onBlur={() => setIsFocused(null)}
                   placeholder="Enter your password"
-                  className="w-full h-12 pl-11 pr-4 rounded-xl text-sm bg-transparent border transition-all duration-300"
+                  className="w-full h-12 pr-4 rounded-xl text-sm bg-transparent border transition-all duration-300"
                   style={{
+                    paddingLeft: '3rem',
                     background: 'rgba(255,255,255,0.02)',
                     borderColor: isFocused === 'password' ? 'rgba(244,63,94,0.5)' : 'rgba(255,255,255,0.06)',
                     color: '#fafafa',
@@ -279,6 +282,7 @@ function LoginCard({ onLogin }: LoginCardProps) {
 
             <motion.div
               className="flex items-center justify-end"
+              style={{ marginTop: '4px' }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.45 }}
