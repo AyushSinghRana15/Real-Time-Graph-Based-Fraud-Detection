@@ -25,7 +25,7 @@ const RISK_THRESHOLDS = [
 export function DashboardPage({ onLogout }: { onLogout: () => void }) {
   const { data: alerts = [] } = useAlerts();
   const { toasts, removeToast, graphState } = useRealTimeAlerts(true);
-  const { graphData } = useRealTimeGraph(true, 5000);
+  const { graphData } = useRealTimeGraph(true, 2000);
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
   const [activeNav, setActiveNav] = useState<NavItem>('Dashboard');
   

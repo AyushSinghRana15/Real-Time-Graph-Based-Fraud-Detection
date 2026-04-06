@@ -2,29 +2,49 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { Activity, Shield, Lock, Mail } from 'lucide-react';
 
-interface Node {
+interface GraphNode {
   x: number;
   y: number;
   vx: number;
   vy: number;
   radius: number;
+  color: string;
+  glowColor: string;
+  pulsePhase: number;
 }
 
-function ParticleBackground() {
+const NODE_COLORS = [
+  { main: '#f43f5e', glow: 'rgba(244,63,94,0.5)' },   // Rose
+  { main: '#8b5cf6', glow: 'rgba(139,92,246,0.5)' },   // Violet
+  { main: '#22c55e', glow: 'rgba(34,197,94,0.5)' },    // Green
+  { main: '#3b82f6', glow: 'rgba(59,130,246,0.5)' },  // Blue
+  { main: '#f59e0b', glow: 'rgba(245,158,11,0.5)' },  // Amber
+  { main: '#ec4899', glow: 'rgba(236,72,153,0.5)' },  // Pink
+  { main: '#14b8a6', glow: 'rgba(20,184,166,0.5)' },  // Teal
+  { main: '#a855f7', glow: 'rgba(168,85,247,0.5)' },  // Purple
+];
+
+function NetworkGraphBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mouseRef = useRef({ x: -1000, y: -1000 });
-  const nodesRef = useRef<Node[]>([]);
+  const nodesRef = useRef<GraphNode[]>([]);
   const rafRef = useRef<number>(0);
 
   const initNodes = useCallback((width: number, height: number) => {
-    const NODE_COUNT = 80;
-    nodesRef.current = Array.from({ length: NODE_COUNT }, () => ({
-      x: Math.random() * width,
-      y: Math.random() * height,
-      vx: (Math.random() - 0.5) * 0.3,
-      vy: (Math.random() - 0.5) * 0.3,
-      radius: Math.random() * 1.5 + 0.5,
-    }));
+    const NODE_COUNT = 60;
+    nodesRef.current = Array.from({ length: NODE_COUNT }, () => {
+      const colorSet = NODE_COLORS[Math.floor(Math.random() * NODE_COLORS.length)];
+      return {
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 0.4,
+        vy: (Math.random() - 0.5) * 0.4,
+        radius: Math.random() * 2 + 1,
+        color: colorSet.main,
+        glowColor: colorSet.glow,
+        pulsePhase: Math.random() * Math.PI * 2,
+      };
+    });
   }, []);
 
   useEffect(() => {
@@ -49,14 +69,17 @@ function ParticleBackground() {
       mouseRef.current = { x: -1000, y: -1000 };
     });
 
-    const EDGE_DIST = 150;
-    const MOUSE_DIST = 200;
+    const EDGE_DIST = 180;
+    const MOUSE_DIST = 250;
+
+    let time = 0;
 
     const draw = () => {
       ctx.fillStyle = '#09090b';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       const mouse = mouseRef.current;
+      time += 0.02;
 
       nodesRef.current.forEach(n => {
         if (mouse.x > 0) {
@@ -64,13 +87,13 @@ function ParticleBackground() {
           const dy = mouse.y - n.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist < MOUSE_DIST) {
-            const force = (MOUSE_DIST - dist) / MOUSE_DIST * 0.03;
+            const force = (MOUSE_DIST - dist) / MOUSE_DIST * 0.04;
             n.vx += (dx / dist) * force;
             n.vy += (dy / dist) * force;
           }
         }
-        n.vx *= 0.99;
-        n.vy *= 0.99;
+        n.vx *= 0.98;
+        n.vy *= 0.98;
         n.x += n.vx;
         n.y += n.vy;
         if (n.x < -20) n.x = canvas.width + 20;
@@ -79,7 +102,6 @@ function ParticleBackground() {
         if (n.y > canvas.height + 20) n.y = -20;
       });
 
-      ctx.lineWidth = 0.5;
       for (let i = 0; i < nodesRef.current.length; i++) {
         const a = nodesRef.current[i];
         for (let j = i + 1; j < nodesRef.current.length; j++) {
@@ -88,20 +110,37 @@ function ParticleBackground() {
           const dy = b.y - a.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist < EDGE_DIST) {
-            const op = (1 - dist / EDGE_DIST) * 0.15;
+            const op = (1 - dist / EDGE_DIST) * 0.2;
+            const gradient = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
+            gradient.addColorStop(0, a.color.replace(')', `,${op})`).replace('rgb', 'rgba').replace('#', ''));
+            gradient.addColorStop(1, b.color.replace(')', `,${op})`).replace('rgb', 'rgba').replace('#', ''));
+            
             ctx.beginPath();
             ctx.moveTo(a.x, a.y);
             ctx.lineTo(b.x, b.y);
-            ctx.strokeStyle = `rgba(244,63,94,${op})`;
+            ctx.strokeStyle = `rgba(255,255,255,${op * 0.3})`;
+            ctx.lineWidth = 0.5;
             ctx.stroke();
           }
         }
       }
 
       nodesRef.current.forEach(n => {
+        const pulse = Math.sin(time + n.pulsePhase) * 0.3 + 0.7;
+        const glowRadius = n.radius * 3 * pulse;
+        
+        const gradient = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, glowRadius);
+        gradient.addColorStop(0, n.glowColor);
+        gradient.addColorStop(1, 'transparent');
+        
         ctx.beginPath();
-        ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(244,63,94,0.5)';
+        ctx.arc(n.x, n.y, glowRadius, 0, Math.PI * 2);
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, n.radius * pulse, 0, Math.PI * 2);
+        ctx.fillStyle = n.color;
         ctx.fill();
       });
 
@@ -117,7 +156,7 @@ function ParticleBackground() {
     };
   }, [initNodes]);
 
-  return <canvas ref={canvasRef} className="absolute inset-0 opacity-60" />;
+  return <canvas ref={canvasRef} className="absolute inset-0 opacity-70" />;
 }
 
 interface LoginCardProps {
@@ -346,7 +385,7 @@ function LoginCard({ onLogin }: LoginCardProps) {
 export function LoginPage({ onLogin }: { onLogin: () => void }) {
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden" style={{ background: '#09090b' }}>
-      <ParticleBackground />
+      <NetworkGraphBackground />
 
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/50 pointer-events-none" />
 
