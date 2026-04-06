@@ -17,6 +17,7 @@ interface GraphNode {
   label: string;
   riskScore: number;
   isCycle: boolean;
+  degree?: number;
 }
 
 interface GraphLink {
@@ -36,15 +37,62 @@ interface PredictionResult {
   };
 }
 
+const PROXY_NODES: GraphNode[] = [
+  { id: 'user_1', label: 'user_1', riskScore: 0.3, isCycle: false, degree: 3 },
+  { id: 'user_2', label: 'user_2', riskScore: 0.5, isCycle: false, degree: 2 },
+  { id: 'user_3', label: 'user_3', riskScore: 0.8, isCycle: true, degree: 4 },
+  { id: 'user_4', label: 'user_4', riskScore: 0.4, isCycle: false, degree: 1 },
+  { id: 'user_5', label: 'user_5', riskScore: 0.6, isCycle: true, degree: 3 },
+  { id: 'user_6', label: 'user_6', riskScore: 0.2, isCycle: false, degree: 2 },
+  { id: 'user_7', label: 'user_7', riskScore: 0.7, isCycle: true, degree: 2 },
+  { id: 'user_8', label: 'user_8', riskScore: 0.45, isCycle: false, degree: 1 },
+];
+
+const PROXY_LINKS: GraphLink[] = [
+  { source: 'user_1', target: 'user_2', isCycle: false },
+  { source: 'user_2', target: 'user_3', isCycle: false },
+  { source: 'user_3', target: 'user_5', isCycle: true },
+  { source: 'user_5', target: 'user_3', isCycle: true },
+  { source: 'user_1', target: 'user_4', isCycle: false },
+  { source: 'user_4', target: 'user_6', isCycle: false },
+  { source: 'user_3', target: 'user_7', isCycle: true },
+  { source: 'user_7', target: 'user_3', isCycle: true },
+  { source: 'user_6', target: 'user_8', isCycle: false },
+  { source: 'user_8', target: 'user_1', isCycle: false },
+];
+
+function createTextSprite(text: string, color: string) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    ctx.fillStyle = 'transparent';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.font = 'bold 32px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = color;
+    ctx.fillText(text, 128, 32);
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.needsUpdate = true;
+  const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+  const sprite = new THREE.Sprite(material);
+  sprite.scale.set(12, 3, 1);
+  return sprite;
+}
+
 export function NetworkPage({ onClose }: { onClose: () => void }) {
   const queryClient = useQueryClient();
   const graphRef = useRef<any>(null);
   const [dims, setDims] = useState({ w: window.innerWidth, h: window.innerHeight });
-  const [nodes, setNodes] = useState<GraphNode[]>([]);
-  const [links, setLinks] = useState<GraphLink[]>([]);
-  const [currentEdges, setCurrentEdges] = useState<string[]>([]);
-  const [cycleNodes, setCycleNodes] = useState<string[]>([]);
-  const [cycles, setCycles] = useState<string[][]>([]);
+  const [nodes, setNodes] = useState<GraphNode[]>(PROXY_NODES);
+  const [links, setLinks] = useState<GraphLink[]>(PROXY_LINKS);
+  const [currentEdges, setCurrentEdges] = useState<string[]>(PROXY_LINKS.map(l => `${l.source} → ${l.target}`));
+  const [cycleNodes, setCycleNodes] = useState<string[]>(['user_3', 'user_5', 'user_7']);
+  const [cycles, setCycles] = useState<string[][]>([['user_3', 'user_5'], ['user_3', 'user_7']]);
+  const [initialized, setInitialized] = useState(false);
 
   const [formData, setFormData] = useState({
     sender_id: 1,
@@ -66,7 +114,7 @@ export function NetworkPage({ onClose }: { onClose: () => void }) {
   const { analytics } = useGraphAnalytics(true, 5000);
 
   useEffect(() => {
-    if (analytics) {
+    if (analytics && analytics.cycles.length > 0) {
       setCycles(analytics.cycles.map(c => c.nodes));
       setCycleNodes(analytics.nodes_in_cycles || []);
     }
@@ -83,35 +131,49 @@ export function NetworkPage({ onClose }: { onClose: () => void }) {
       const res = await fetch('http://localhost:3001/api/graph/state');
       const data = await res.json();
       
-      const newNodes: GraphNode[] = data.nodes.map((n: any) => ({
-        id: n.id,
-        label: n.label,
-        riskScore: n.risk / 100,
-        isCycle: cycleNodes.includes(n.id),
-      }));
+      if (data.nodes && data.nodes.length > 0) {
+        const nodeDegreeMap: Record<string, number> = {};
+        data.edges.forEach((e: any) => {
+          nodeDegreeMap[e.source] = (nodeDegreeMap[e.source] || 0) + 1;
+          nodeDegreeMap[e.target] = (nodeDegreeMap[e.target] || 0) + 1;
+        });
 
-      const validIds = new Set(newNodes.map(n => n.id));
-      const newLinks: GraphLink[] = data.edges
-        .filter((l: any) => validIds.has(l.source) && validIds.has(l.target))
-        .map((l: any) => ({
-          source: l.source,
-          target: l.target,
-          isCycle: cycleNodes.includes(l.source) && cycleNodes.includes(l.target),
+        const newNodes: GraphNode[] = data.nodes.map((n: any) => ({
+          id: n.id,
+          label: n.label || n.id,
+          riskScore: n.risk / 100,
+          isCycle: cycleNodes.includes(n.id),
+          degree: nodeDegreeMap[n.id] || 0,
         }));
 
-      setNodes(newNodes);
-      setLinks(newLinks);
-      setCurrentEdges(newLinks.map(l => `${l.source} → ${l.target}`));
+        const validIds = new Set(newNodes.map(n => n.id));
+        const newLinks: GraphLink[] = data.edges
+          .filter((l: any) => validIds.has(l.source) && validIds.has(l.target))
+          .map((l: any) => ({
+            source: l.source,
+            target: l.target,
+            isCycle: cycleNodes.includes(l.source) && cycleNodes.includes(l.target),
+          }));
+
+        setNodes(newNodes);
+        setLinks(newLinks);
+        setCurrentEdges(newLinks.map(l => `${l.source} → ${l.target}`));
+        setInitialized(true);
+      }
     } catch (error) {
       console.error('Error fetching graph:', error);
     }
   }, [cycleNodes]);
 
   useEffect(() => {
-    fetchGraph();
-    const interval = setInterval(fetchGraph, 5000);
+    if (!initialized) {
+      fetchGraph();
+    }
+    const interval = setInterval(() => {
+      if (!initialized) fetchGraph();
+    }, 5000);
     return () => clearInterval(interval);
-  }, [fetchGraph]);
+  }, [fetchGraph, initialized]);
 
   const handlePredict = async () => {
     const sender = `user_${formData.sender_id}`;
@@ -166,6 +228,9 @@ export function NetworkPage({ onClose }: { onClose: () => void }) {
       setCurrentEdges([]);
       setCycles([]);
       setCycleNodes([]);
+      setNodes([]);
+      setLinks([]);
+      setInitialized(false);
       await fetchGraph();
       queryClient.invalidateQueries({ queryKey: ['graphState'] });
       queryClient.invalidateQueries({ queryKey: ['graphAnalytics'] });
@@ -177,12 +242,15 @@ export function NetworkPage({ onClose }: { onClose: () => void }) {
   };
 
   const nodeObj = useCallback((node: any) => {
-    const isCycle = cycleNodes.includes(node.id);
+    const isCycle = cycleNodes.includes(node.id) || node.isCycle;
     const baseColor = isCycle ? '#ef4444' : riskColor(node.riskScore);
     const g = new THREE.Group();
 
+    const degree = node.degree || 1;
+    const nodeSize = isCycle ? 8 : Math.max(3, Math.min(6, 2 + degree * 0.8));
+
     const mesh = new THREE.Mesh(
-      new THREE.SphereGeometry(isCycle ? 5 : 3, 16, 16),
+      new THREE.SphereGeometry(nodeSize, 24, 24),
       new THREE.MeshPhongMaterial({
         color: baseColor,
         transparent: true,
@@ -195,23 +263,28 @@ export function NetworkPage({ onClose }: { onClose: () => void }) {
 
     if (isCycle) {
       const ring = new THREE.Mesh(
-        new THREE.RingGeometry(7, 8.5, 32),
-        new THREE.MeshBasicMaterial({ color: '#ef4444', transparent: true, opacity: 0.4, side: THREE.DoubleSide }),
+        new THREE.RingGeometry(nodeSize + 3, nodeSize + 4.5, 32),
+        new THREE.MeshBasicMaterial({ color: '#ef4444', transparent: true, opacity: 0.5, side: THREE.DoubleSide }),
       );
       ring.rotation.x = Math.PI / 2;
       g.add(ring);
     }
 
+    const labelColor = isCycle ? '#ef4444' : '#60a5fa';
+    const sprite = createTextSprite(node.label, labelColor);
+    sprite.position.y = nodeSize + 4;
+    g.add(sprite);
+
     return g;
   }, [cycleNodes]);
 
   const linkColor = useCallback((link: any) => {
-    if (link.isCycle) return 'rgba(239, 68, 68, 0.6)';
-    return 'rgba(255,255,255,0.1)';
+    if (link.isCycle) return 'rgba(239, 68, 68, 0.7)';
+    return 'rgba(255,255,255,0.15)';
   }, []);
 
   const linkWidth = useCallback((link: any) => {
-    return link.isCycle ? 2 : 1;
+    return link.isCycle ? 3 : 1.5;
   }, []);
 
   const sender = `user_${formData.sender_id}`;
@@ -233,16 +306,17 @@ export function NetworkPage({ onClose }: { onClose: () => void }) {
             ref={graphRef}
             graphData={{ nodes, links }}
             nodeId="id"
-            nodeLabel="label"
+            nodeLabel={(node: any) => `${node.label} (${(node.riskScore * 100).toFixed(0)}%)`}
             nodeThreeObject={nodeObj}
             nodeThreeObjectExtend={false}
             linkWidth={linkWidth}
             linkColor={linkColor}
-            linkDirectionalParticles={2}
-            linkDirectionalParticleWidth={1.5}
+            linkDirectionalParticles={3}
+            linkDirectionalParticleWidth={2}
             linkDirectionalParticleColor={() => '#f59e0b'}
-            cooldownTicks={100}
-            onEngineStop={() => graphRef.current?.zoomToFit(400, 50)}
+            linkDirectionalParticleSpeed={0.008}
+            cooldownTicks={150}
+            onEngineStop={() => graphRef.current?.zoomToFit(600, 40)}
             backgroundColor="#09090b"
             width={dims.w}
             height={dims.h}
@@ -631,6 +705,11 @@ export function NetworkPage({ onClose }: { onClose: () => void }) {
         <div className="flex items-center gap-2">
           <div className="w-3 h-0.5" style={{ background: '#ef4444' }} />
           <span className="text-xs" style={{ color: '#71717a' }}>Cycle Edge</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 rounded-full" style={{ background: '#ef4444', boxShadow: '0 0 8px #ef4444' }} />
+          <div className="w-7 h-7 rounded-full border-2 border-red-400" style={{ marginLeft: -16 }} />
+          <span className="text-xs" style={{ color: '#71717a' }}>High Degree</span>
         </div>
       </div>
     </motion.div>
