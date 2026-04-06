@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useAlerts } from '../hooks/useFraudDetection';
+import { useRealTimeAlerts } from '../hooks/useRealTime';
 import type { Alert, TransactionNode } from '../types';
 import { HUDHeader, NAV_ITEMS } from '../components/dashboard/HUDHeader';
 import { GraphCanvas } from '../components/dashboard/GraphCanvas';
@@ -8,12 +9,14 @@ import { HUDContextPanel } from '../components/dashboard/HUDContextPanel';
 import { FocusSandbox } from '../components/dashboard/FocusSandbox';
 import { SettingsOverlay } from '../components/dashboard/SettingsOverlay';
 import { UserProfileOverlay } from '../components/dashboard/UserProfileOverlay';
+import { ToastContainer } from '../components/ToastContainer';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 
 type NavItem = typeof NAV_ITEMS[number];
 
 export function DashboardPage({ onLogout }: { onLogout: () => void }) {
   const { data: alerts = [] } = useAlerts();
+  const { toasts, removeToast } = useRealTimeAlerts(true);
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
   const [activeNav, setActiveNav] = useState<NavItem>('Dashboard');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -89,6 +92,8 @@ export function DashboardPage({ onLogout }: { onLogout: () => void }) {
 
       <SettingsOverlay isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
       <UserProfileOverlay isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} onLogout={onLogout} />
+      
+      <ToastContainer toasts={toasts} onDismiss={removeToast} />
     </div>
   );
 }

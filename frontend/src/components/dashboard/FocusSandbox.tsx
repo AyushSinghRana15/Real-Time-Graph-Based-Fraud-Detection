@@ -1,10 +1,11 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Terminal, Brain, X, Send, Loader2, Shield, AlertTriangle, Sparkles, TrendingUp } from 'lucide-react';
+import { Terminal, Brain, X, Send, Loader2, Shield, AlertTriangle, Sparkles, TrendingUp, Zap } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { riskColor } from '../../utils/colors';
 import { GraphCanvas } from './GraphCanvas';
 import { ErrorBoundary } from '../ErrorBoundary';
+import { simulateAttack } from '../../api/fraudApi';
 
 interface Message {
   id: string;
@@ -63,6 +64,8 @@ export function FocusSandbox({ isActive, onClose, defaultAlert }: FocusSandboxPr
   const [activeTab, setActiveTab] = useState<'chat' | 'diagnostics'>('diagnostics');
   const [prediction, setPrediction] = useState<PredictionResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [simulationResult, setSimulationResult] = useState<{ pattern: string; description: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
@@ -198,6 +201,30 @@ export function FocusSandbox({ isActive, onClose, defaultAlert }: FocusSandboxPr
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    }
+  };
+
+  const handleSimulateAttack = async () => {
+    setIsSimulating(true);
+    try {
+      const result = await simulateAttack();
+      setSimulationResult(result);
+      queryClient.invalidateQueries({ queryKey: ['nodes'] });
+      queryClient.invalidateQueries({ queryKey: ['graphState'] });
+      
+      const assistantMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: `Attack simulation complete. ${result.description}. ${result.nodes_created} nodes and ${result.edges_created} edges created with a ${result.risk_score}% risk score. The ${result.pattern.replace('_', ' ')} pattern has been added to the graph network for analysis.`,
+        timestamp: new Date(),
+        hasContext: false,
+      };
+      setMessages(prev => [...prev, assistantMessage]);
+      setActiveTab('chat');
+    } catch (error) {
+      console.error('Attack simulation failed:', error);
+    } finally {
+      setIsSimulating(false);
     }
   };
 
@@ -627,7 +654,39 @@ export function FocusSandbox({ isActive, onClose, defaultAlert }: FocusSandboxPr
                       <p className="text-[10px]" style={{ color: '#a855f7' }}>{prediction.fraud_probability.toFixed(1)}% risk detected</p>
                     </motion.button>
                   )}
+
+                  <motion.button
+                    whileHover={{ x: 4 }}
+                    onClick={handleSimulateAttack}
+                    disabled={isSimulating}
+                    className="w-full text-left p-3 rounded-lg disabled:opacity-50"
+                    style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      {isSimulating ? (
+                        <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#ef4444' }} />
+                      ) : (
+                        <Zap className="w-4 h-4" style={{ color: '#ef4444' }} />
+                      )}
+                      <span className="text-xs font-medium" style={{ color: '#fafafa' }}>Simulate Attack Ring</span>
+                    </div>
+                    <p className="text-[10px]" style={{ color: '#ef4444' }}>
+                      {isSimulating ? 'Generating fraud pattern...' : 'Create synthetic attack'}
+                    </p>
+                  </motion.button>
                 </div>
+
+                {simulationResult && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-4 p-3 rounded-lg"
+                    style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#ef4444' }}>Last Simulation</p>
+                    <p className="text-xs" style={{ color: '#a1a1aa' }}>{simulationResult.description}</p>
+                  </motion.div>
+                )}
               </div>
             </div>
           </div>

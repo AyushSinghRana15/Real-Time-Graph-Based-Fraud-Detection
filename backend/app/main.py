@@ -187,6 +187,12 @@ async def refresh_live_data():
         return {"status": "error", "message": str(e)}
 
 
+@app.post("/api/simulate-attack")
+def simulate_attack():
+    result = ml_service.simulate_attack_ring(num_nodes=8)
+    return result
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=3001)

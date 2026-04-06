@@ -26,3 +26,43 @@ export async function fetchNodeById(id: string) {
   const response = await fetch(`${API_BASE}/nodes/${id}`);
   return handleResponse<import('../types').TransactionNode>(response);
 }
+
+export async function fetchGraphState() {
+  const response = await fetch(`${API_BASE}/graph/state`);
+  return handleResponse<{
+    nodes: import('../types').TransactionNode[];
+    edges: import('../types').TransactionLink[];
+    node_risks?: Record<string, number>;
+    stats: {
+      total_nodes: number;
+      total_edges: number;
+      high_risk_nodes?: number;
+      network_avg_risk?: number;
+    };
+  }>(response);
+}
+
+export async function fetchHealth() {
+  const response = await fetch(`${API_BASE}/health`);
+  return handleResponse<{
+    status: string;
+    timestamp: string;
+    ml_model_available: boolean;
+    graph_nodes: number;
+    graph_edges: number;
+    live_data_source: string;
+  }>(response);
+}
+
+export async function simulateAttack() {
+  const response = await fetch(`${API_BASE}/simulate-attack`, {
+    method: 'POST',
+  });
+  return handleResponse<{
+    pattern: string;
+    nodes_created: number;
+    edges_created: number;
+    risk_score: number;
+    description: string;
+  }>(response);
+}
