@@ -103,3 +103,8 @@ export async function addTransaction(transaction: {
     };
   }>(response);
 }
+
+export async function fetchGraphAnalytics() {
+  const response = await fetch(`${API_BASE}/graph/analytics`);
+  return handleResponse<import('../hooks/useRealTime').GraphAnalytics>(response);
+}

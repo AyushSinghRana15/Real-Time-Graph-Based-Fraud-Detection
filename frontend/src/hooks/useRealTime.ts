@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Alert, TransactionNode, TransactionLink } from '../types';
-import { fetchAlerts, fetchGraphState } from '../api/fraudApi';
+import { fetchAlerts, fetchGraphState, fetchGraphAnalytics } from '../api/fraudApi';
 
 interface GraphState {
   nodes: TransactionNode[];
@@ -147,4 +147,40 @@ export function useRealTimeGraph(enabled = true, pollInterval = 5000) {
     isLoading,
     refetch: fetchGraph,
   };
+}
+
+export interface GraphAnalytics {
+  cycles: Array<{ path: string; nodes: string[]; length: number; risk: number }>;
+  cycle_count: number;
+  nodes_in_cycles: string[];
+  top_hubs: Array<{ id: string; label: string; degree: number; risk: number }>;
+  top_clusters: Array<{ id: string; label: string; clustering: number; risk: number }>;
+  network_density: number;
+  total_nodes: number;
+  total_edges: number;
+}
+
+export function useGraphAnalytics(enabled = true, pollInterval = 12000) {
+  const [analytics, setAnalytics] = useState<GraphAnalytics | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchAnalytics = useCallback(async () => {
+    try {
+      const data = await fetchGraphAnalytics();
+      setAnalytics(data);
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!enabled) return;
+    fetchAnalytics();
+    const interval = setInterval(fetchAnalytics, pollInterval);
+    return () => clearInterval(interval);
+  }, [enabled, pollInterval, fetchAnalytics]);
+
+  return { analytics, isLoading, refetch: fetchAnalytics };
 }

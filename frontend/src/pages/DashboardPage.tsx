@@ -13,7 +13,7 @@ import { ToastContainer } from '../components/ToastContainer';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { NetworkExplorer } from '../components/dashboard/NetworkExplorer';
 import { AboutPage } from '../components/dashboard/AboutPage';
-import { useRealTimeGraph } from '../hooks/useRealTime';
+import { useGraphAnalytics } from '../hooks/useRealTime';
 
 const RISK_THRESHOLDS = [
   { label: 'Low (0-25%)', color: '#22c55e', minRisk: 0 },
@@ -25,7 +25,7 @@ const RISK_THRESHOLDS = [
 export function DashboardPage({ onLogout }: { onLogout: () => void }) {
   const { data: alerts = [] } = useAlerts();
   const { toasts, removeToast, graphState } = useRealTimeAlerts(true);
-  const { graphData } = useRealTimeGraph(true, 12000);
+  const { analytics } = useGraphAnalytics(true, 12000);
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
   const [activeNav, setActiveNav] = useState<NavItem>('Dashboard');
 
@@ -41,12 +41,10 @@ export function DashboardPage({ onLogout }: { onLogout: () => void }) {
   const highRiskCount = alerts.filter(a => a.type === 'high_risk').length;
 
   const graphStats = {
-    total_nodes: graphState?.stats?.total_nodes ?? graphData.nodes.length,
-    total_edges: graphState?.stats?.total_edges ?? graphData.links.length,
-    high_risk_nodes: graphState?.stats?.high_risk_nodes ?? graphData.nodes.filter(n => n.risk > 70).length,
-    network_avg_risk: graphState?.stats?.network_avg_risk ?? (graphData.nodes.length > 0
-      ? graphData.nodes.reduce((acc, n) => acc + n.risk, 0) / graphData.nodes.length
-      : 0),
+    total_nodes: graphState?.stats?.total_nodes ?? 0,
+    total_edges: graphState?.stats?.total_edges ?? 0,
+    high_risk_nodes: graphState?.stats?.high_risk_nodes ?? graphState?.nodes.filter((n: any) => n.risk > 70).length ?? 0,
+    network_avg_risk: graphState?.stats?.network_avg_risk ?? 0,
   };
 
   const handleNodeClick = useCallback((node: TransactionNode) => {
@@ -76,6 +74,7 @@ export function DashboardPage({ onLogout }: { onLogout: () => void }) {
             entityId={selectedAlert?.entityId ?? null}
             onNodeClick={handleNodeClick}
             autoRotate={isNetworkMode && autoRotate}
+            cycleNodes={analytics?.nodes_in_cycles || []}
           />
         </ErrorBoundary>
       </div>

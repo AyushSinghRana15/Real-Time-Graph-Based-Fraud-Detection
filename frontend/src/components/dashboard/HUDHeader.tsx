@@ -87,15 +87,15 @@ function NavIsland({ activeNav, onNavChange }: { activeNav: NavItem; onNavChange
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1, type: 'spring', stiffness: 400, damping: 25 }}
-      className="relative px-4 py-2.5 rounded-2xl"
+      className="relative px-6 py-3.5 rounded-3xl"
       style={{
-        background: 'rgba(20,20,25,0.5)',
+        background: 'rgba(20,20,25,0.4)',
         backdropFilter: 'blur(40px)',
         border: '1px solid rgba(255,255,255,0.08)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
+        boxShadow: '0 12px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)',
       }}
     >
-      <div className="flex items-center gap-8 relative">
+      <div className="flex items-center gap-2 relative">
         {NAV_ITEMS.map((item) => {
           const isActive = activeNav === item.id;
           
@@ -103,13 +103,13 @@ function NavIsland({ activeNav, onNavChange }: { activeNav: NavItem; onNavChange
             <motion.button
               key={item.id}
               onClick={() => onNavChange(item.id)}
-              className="relative py-1.5 z-10"
+              className="relative py-2 px-5 z-10"
               whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.97 }}
-              style={{ color: isActive ? '#fafafa' : '#52525b' }}
+              whileTap={{ scale: 0.95 }}
+              style={{ color: isActive ? '#fafafa' : '#71717a' }}
             >
               <span 
-                className="text-sm font-semibold tracking-[0.2em] uppercase"
+                className="text-base font-bold tracking-[0.2em] uppercase whitespace-nowrap"
                 style={{ fontFamily: 'monospace' }}
               >
                 {item.label}
@@ -118,18 +118,16 @@ function NavIsland({ activeNav, onNavChange }: { activeNav: NavItem; onNavChange
           );
         })}
         
-        {activeNav && (
-          <motion.div
-            layoutId="nav-pill"
-            className="absolute inset-0 -z-0 rounded-xl"
-            style={{
-              background: 'linear-gradient(135deg, rgba(244,63,94,0.4) 0%, rgba(244,63,94,0.2) 100%)',
-              border: '1px solid rgba(244,63,94,0.5)',
-              boxShadow: '0 0 20px rgba(244,63,94,0.3), 0 0 40px rgba(244,63,94,0.15), inset 0 0 20px rgba(244,63,94,0.1)',
-            }}
-            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-          />
-        )}
+        <motion.div
+          layoutId="nav-pill"
+          className="absolute h-[80%] my-auto inset-y-0 rounded-xl px-5"
+          style={{
+            background: 'linear-gradient(135deg, rgba(244,63,94,0.35) 0%, rgba(244,63,94,0.15) 100%)',
+            border: '1px solid rgba(244,63,94,0.5)',
+            boxShadow: '0 0 30px rgba(244,63,94,0.3), inset 0 0 15px rgba(244,63,94,0.15)',
+          }}
+          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+        />
       </div>
     </motion.nav>
   );

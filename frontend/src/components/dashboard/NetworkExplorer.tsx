@@ -1,42 +1,15 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect } from 'react';
-import { Activity, Info, ChevronLeft, ChevronRight, GitBranch, Network, Zap, RefreshCw, ArrowRight, AlertTriangle, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Activity, Info, ChevronLeft, ChevronRight, GitBranch, Network, Zap, RefreshCw, Trash2 } from 'lucide-react';
 import { resetGraph } from '../../api/fraudApi';
 import { useQueryClient } from '@tanstack/react-query';
+import { useGraphAnalytics } from '../../hooks/useRealTime';
 
 interface GraphStats {
   total_nodes: number;
   total_edges: number;
   high_risk_nodes: number;
   network_avg_risk: number;
-}
-
-interface Cycle {
-  path: string;
-  nodes: string[];
-  length: number;
-  risk: number;
-}
-
-interface NodeAnalytics {
-  id: string;
-  label: string;
-  degree: number;
-  clustering: number;
-  pagerank: number;
-  risk: number;
-  in_cycle: boolean;
-}
-
-interface GraphAnalytics {
-  cycles: Cycle[];
-  cycle_count: number;
-  nodes_in_cycles: string[];
-  top_hubs: NodeAnalytics[];
-  top_clusters: NodeAnalytics[];
-  network_density: number;
-  total_nodes: number;
-  total_edges: number;
 }
 
 interface NetworkExplorerProps {
@@ -48,52 +21,10 @@ interface NetworkExplorerProps {
 
 export function NetworkExplorer({ isActive, stats, riskThresholds, onClose }: NetworkExplorerProps) {
   const [isPanelOpen, setIsPanelOpen] = useState(true);
-  const [analytics, setAnalytics] = useState<GraphAnalytics | null>(null);
+  const { analytics } = useGraphAnalytics(isActive, 12000);
   const [autoRotate, setAutoRotate] = useState(true);
   const [isResetting, setIsResetting] = useState(false);
-  const [transactions, setTransactions] = useState<Array<{
-    id: string;
-    sender_id: string;
-    receiver_id: string;
-    amount: number;
-    transaction_type: string;
-    is_flagged: number;
-    timestamp: string;
-  }>>([]);
   const queryClient = useQueryClient();
-
-  useEffect(() => {
-    if (!isActive) return;
-    const fetchAnalytics = async () => {
-      try {
-        const res = await fetch('http://localhost:3001/api/graph/analytics');
-        if (res.ok) {
-          const data = await res.json();
-          setAnalytics(data);
-        }
-      } catch {
-        // Backend not reachable
-      }
-    };
-    const fetchTransactions = async () => {
-      try {
-        const res = await fetch('http://localhost:3001/api/transactions');
-        if (res.ok) {
-          const data = await res.json();
-          setTransactions(data.slice(0, 20));
-        }
-      } catch {
-        // Backend not reachable
-      }
-    };
-    fetchAnalytics();
-    fetchTransactions();
-    const interval = setInterval(() => {
-      fetchAnalytics();
-      fetchTransactions();
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [isActive]);
 
   const handleResetGraph = async () => {
     if (!confirm('Are you sure you want to reset the graph? This will clear all transactions and non-seed nodes.')) return;
@@ -102,8 +33,6 @@ export function NetworkExplorer({ isActive, stats, riskThresholds, onClose }: Ne
       await resetGraph();
       queryClient.invalidateQueries({ queryKey: ['nodes'] });
       queryClient.invalidateQueries({ queryKey: ['graphState'] });
-      setAnalytics(null);
-      setTransactions([]);
     } catch (error) {
       console.error('Reset failed:', error);
     } finally {
@@ -128,25 +57,27 @@ export function NetworkExplorer({ isActive, stats, riskThresholds, onClose }: Ne
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsPanelOpen(!isPanelOpen)}
-            className="absolute top-20 z-30 w-8 h-16 flex items-center justify-center rounded-r-xl pointer-events-auto"
+            className="absolute top-24 z-30 w-10 h-20 flex items-center justify-center rounded-r-2xl pointer-events-auto"
             style={{
-              background: 'rgba(24,24,27,0.9)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              left: isPanelOpen ? '340px' : '0',
-              transition: 'left 0.3s ease',
+              background: 'rgba(20,20,25,0.9)',
+              backdropFilter: 'blur(30px)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              left: isPanelOpen ? '384px' : '0',
+              transition: 'left 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+              boxShadow: '4px 0 20px rgba(0,0,0,0.3)',
             }}
           >
-            {isPanelOpen ? <ChevronLeft className="w-4 h-4 text-zinc-400" /> : <ChevronRight className="w-4 h-4 text-zinc-400" />}
+            {isPanelOpen ? <ChevronLeft className="w-5 h-5 text-zinc-400" /> : <ChevronRight className="w-5 h-5 text-indigo-400" />}
           </motion.button>
 
           <AnimatePresence>
             {isPanelOpen && (
               <motion.div
-                initial={{ x: -360, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ x: -360, opacity: 0 }}
+                initial={{ x: -400, opacity: 0, scale: 0.98 }}
+                animate={{ x: 0, opacity: 1, scale: 1 }}
+                exit={{ x: -400, opacity: 0, scale: 0.98 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                className="absolute left-4 top-20 bottom-6 w-80 overflow-y-auto pointer-events-auto"
+                className="absolute left-6 top-24 bottom-10 w-96 overflow-y-auto pointer-events-auto custom-scrollbar"
               >
                 <div 
                   className="h-full rounded-2xl p-5 space-y-4"
@@ -257,15 +188,7 @@ export function NetworkExplorer({ isActive, stats, riskThresholds, onClose }: Ne
                           >
                             <div className="flex items-center gap-2">
                               <span className="text-[10px] font-mono text-zinc-500 w-4">#{i + 1}</span>
-                              <span className="text-xs text-zinc-300">{node.label}</span>
-                              {node.in_cycle && (
-                                <motion.span
-                                  animate={{ opacity: [0.5, 1, 0.5] }}
-                                  transition={{ duration: 1.5, repeat: Infinity }}
-                                  className="w-1.5 h-1.5 rounded-full"
-                                  style={{ background: '#ef4444' }}
-                                />
-                              )}
+                              <span className="text-xs text-zinc-300">{String(node.label)}</span>
                             </div>
                             <span className="text-xs font-mono text-amber-400">{node.degree}°</span>
                           </div>
@@ -293,47 +216,6 @@ export function NetworkExplorer({ isActive, stats, riskThresholds, onClose }: Ne
                           </div>
                           <p className="text-[9px] uppercase text-zinc-500">Density</p>
                         </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {transactions.length > 0 && (
-                    <div className="space-y-2 pt-2">
-                      <div className="flex items-center gap-2 mb-2">
-                        <ArrowRight className="w-4 h-4 text-cyan-400" />
-                        <h3 className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">Transaction Flow</h3>
-                      </div>
-                      <div className="space-y-1 max-h-48 overflow-y-auto">
-                        {transactions.slice(0, 10).map((tx, i) => (
-                          <motion.div
-                            key={tx.id || i}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: i * 0.05 }}
-                            className="p-2 rounded-lg"
-                            style={{ 
-                              background: tx.is_flagged ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.02)',
-                              border: tx.is_flagged ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(255,255,255,0.04)'
-                            }}
-                          >
-                            <div className="flex items-center justify-between mb-1">
-                              <div className="flex items-center gap-1">
-                                {tx.is_flagged ? (
-                                  <AlertTriangle className="w-3 h-3 text-red-400" />
-                                ) : (
-                                  <ArrowRight className="w-3 h-3 text-cyan-400" />
-                                )}
-                                <span className="text-[10px] text-zinc-500">{tx.transaction_type}</span>
-                              </div>
-                              <span className="text-[10px] font-mono" style={{ color: tx.is_flagged ? '#fca5a5' : '#22c55e' }}>
-                                ${tx.amount.toLocaleString()}
-                              </span>
-                            </div>
-                            <p className="text-[9px] text-zinc-500 truncate font-mono">
-                              {tx.sender_id.slice(0, 8)}... → {tx.receiver_id.slice(0, 8)}...
-                            </p>
-                          </motion.div>
-                        ))}
                       </div>
                     </div>
                   )}
@@ -368,6 +250,11 @@ export function NetworkExplorer({ isActive, stats, riskThresholds, onClose }: Ne
                 <div className="flex items-center gap-3">
                   <div className="w-5 h-5 rounded-full" style={{ background: '#ef4444', boxShadow: '0 0 8px #ef4444' }} />
                   <span className="text-xs text-zinc-400">High Risk</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-5 h-5 rounded-full" style={{ background: '#ef4444', boxShadow: '0 0 8px #ef4444' }} />
+                  <div className="w-7 h-7 rounded-full border-2 border-red-400" style={{ marginLeft: -12 }} />
+                  <span className="text-xs text-zinc-400">Fraud Ring</span>
                 </div>
               </div>
               

@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { Network } from 'lucide-react';
 import ForceGraph3D from 'react-force-graph-3d';
 import * as THREE from 'three';
-import { useRealTimeGraph } from '../../hooks/useRealTime';
 import type { TransactionNode } from '../../types';
 import { riskColor } from '../../utils/colors';
 
@@ -19,12 +18,31 @@ export function GraphCanvas({ entityId: _entityId, onNodeClick, autoRotate = fal
   const graphRef = useRef<any>(null);
   const [dims, setDims] = useState({ w: window.innerWidth, h: window.innerHeight });
   const [isInitialized, setIsInitialized] = useState(false);
-  const { graphData, isLoading } = useRealTimeGraph(true, 5000);
-  const cycleNodeSet = useRef(new Set(cycleNodes));
+  const [graphData, setGraphData] = useState({ nodes: [] as any[], links: [] as any[] });
+  const cycleNodeSet = useRef<Set<string>>(new Set(cycleNodes));
 
   useEffect(() => {
     cycleNodeSet.current = new Set(cycleNodes);
   }, [cycleNodes]);
+
+  useEffect(() => {
+    const fetchGraph = async () => {
+      try {
+        const res = await fetch('http://localhost:3001/api/graph/state');
+        const data = await res.json();
+        setGraphData({
+          nodes: data.nodes.map((n: any) => ({ ...n, riskScore: n.risk / 100 })),
+          links: data.edges.filter((l: any) => l.source && l.target),
+        });
+        setIsInitialized(true);
+      } catch (error) {
+        console.error('Error fetching graph:', error);
+      }
+    };
+    fetchGraph();
+    const interval = setInterval(fetchGraph, 12000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (graphData.nodes.length > 0) {
@@ -169,7 +187,7 @@ export function GraphCanvas({ entityId: _entityId, onNodeClick, autoRotate = fal
       )}
 
       {/* Empty State */}
-      {!hasData && !isLoading && (
+      {!hasData && (
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
           <motion.div animate={{ opacity: [0.3, 0.5, 0.3] }} transition={{ duration: 4, repeat: Infinity }} className="text-center">
             <Network className="w-16 h-16 mx-auto mb-4" style={{ color: '#27272a' }} />
