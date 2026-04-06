@@ -156,6 +156,11 @@ def get_graph_state():
     return ml_service.get_graph_state()
 
 
+@app.get("/api/graph/analytics")
+def get_graph_analytics():
+    return ml_service.get_graph_analytics()
+
+
 @app.get("/api/nodes/{node_id}")
 def get_node(node_id: str):
     for node in graph_state.nodes:

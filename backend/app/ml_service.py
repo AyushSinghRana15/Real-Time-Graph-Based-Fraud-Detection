@@ -396,6 +396,80 @@ class MLService:
             }
         }
 
+    def get_graph_analytics(self) -> dict:
+        graph_data = TransactionRepository.get_graph_data()
+        
+        self.graph = nx.DiGraph()
+        for user in graph_data["users"]:
+            self.graph.add_node(user["id"], label=user["username"], type=user["user_type"])
+        for tx in graph_data["transactions"]:
+            self.graph.add_edge(tx["source"], tx["target"], amount=tx["amount"])
+        
+        cycles = []
+        cycle_nodes = set()
+        try:
+            undirected = self.graph.to_undirected()
+            for cycle in nx.simple_cycles(self.graph):
+                if len(cycle) >= 3:
+                    cycle_labels = [self.username_map.get(n, n) for n in cycle]
+                    cycle_path = " -> ".join(cycle_labels[:4])
+                    if len(cycle) > 4:
+                        cycle_path += f" -> ... ({len(cycle)} nodes)"
+                    else:
+                        cycle_path += f" -> {cycle_labels[0]}"
+                    cycles.append({
+                        "path": cycle_path,
+                        "nodes": cycle,
+                        "length": len(cycle),
+                        "risk": round(sum(self.node_risk_scores.get(n, 0.5) for n in cycle) / len(cycle) * 100, 1)
+                    })
+                    cycle_nodes.update(cycle)
+        except Exception as e:
+            print(f"Cycle detection error: {e}")
+        
+        node_analytics = []
+        undirected = self.graph.to_undirected()
+        for node in self.graph.nodes():
+            degree = self.graph.degree(node)
+            try:
+                clustering = nx.clustering(undirected, node)
+            except:
+                clustering = 0
+            try:
+                pagerank = nx.pagerank(self.graph, alpha=0.85).get(node, 0)
+            except:
+                pagerank = 0
+            
+            node_analytics.append({
+                "id": node,
+                "label": self.username_map.get(node, node),
+                "degree": degree,
+                "clustering": round(clustering * 100, 1),
+                "pagerank": round(pagerank * 1000, 2),
+                "risk": round(self.node_risk_scores.get(node, 0.5) * 100, 1),
+                "in_cycle": node in cycle_nodes
+            })
+        
+        node_analytics.sort(key=lambda x: x["degree"], reverse=True)
+        top_hubs = node_analytics[:5]
+        top_clusters = sorted(node_analytics, key=lambda x: x["clustering"], reverse=True)[:5]
+        
+        try:
+            density = nx.density(self.graph.to_undirected())
+        except:
+            density = 0
+        
+        return {
+            "cycles": cycles,
+            "cycle_count": len(cycles),
+            "nodes_in_cycles": list(cycle_nodes),
+            "top_hubs": top_hubs,
+            "top_clusters": top_clusters,
+            "network_density": round(density, 4),
+            "total_nodes": self.graph.number_of_nodes(),
+            "total_edges": self.graph.number_of_edges()
+        }
+
     def simulate_attack_ring(self, num_nodes: int = 8) -> dict:
         prefix = f"0x{random.randint(0, 16**8):08x}"
         nodes = []

@@ -1,13 +1,13 @@
 import { motion } from 'framer-motion';
-import { Bell, Settings, User, Activity, LayoutDashboard, Network, FlaskConical, Info } from 'lucide-react';
+import { Bell, Settings, User, Activity } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 
 export const NAV_ITEMS = [
-  { id: 'Dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'Network', label: 'Network', icon: Network },
-  { id: 'Sandbox', label: 'Sandbox', icon: FlaskConical },
-  { id: 'About', label: 'About', icon: Info },
+  { id: 'Dashboard', label: 'DASHBOARD' },
+  { id: 'Network', label: 'NETWORK' },
+  { id: 'Sandbox', label: 'SANDBOX' },
+  { id: 'About', label: 'ABOUT' },
 ] as const;
 export type NavItem = typeof NAV_ITEMS[number]['id'];
 
@@ -42,7 +42,7 @@ function LiveIndicator() {
         className="w-1.5 h-1.5 rounded-full"
         style={{ background: isError ? '#ef4444' : '#22c55e', boxShadow: isError ? '0 0 8px #ef4444' : '0 0 8px #22c55e' }}
       />
-      <span className="text-[9px] font-medium uppercase tracking-wider" style={{ color: isError ? '#ef4444' : '#22c55e' }}>
+      <span className="text-[9px] font-medium uppercase tracking-[0.15em]" style={{ color: isError ? '#ef4444' : '#22c55e' }}>
         {isLoading ? '...' : isError ? 'OFF' : 'LIVE'}
       </span>
     </motion.div>
@@ -73,7 +73,7 @@ function BrandIsland() {
           <Activity className="w-4 h-4" style={{ color: '#f43f5e' }} />
         </div>
         <div className="flex flex-col">
-          <span className="text-sm font-bold tracking-[0.1em]" style={{ color: '#fafafa', fontFamily: 'Space Grotesk, sans-serif' }}>FORENSIC LENS</span>
+          <span className="text-sm font-bold tracking-[0.15em]" style={{ color: '#fafafa', fontFamily: 'Space Grotesk, sans-serif' }}>FORENSIC LENS</span>
           <LiveIndicator />
         </div>
       </div>
@@ -87,31 +87,29 @@ function NavIsland({ activeNav, onNavChange }: { activeNav: NavItem; onNavChange
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1, type: 'spring', stiffness: 400, damping: 25 }}
-      className="relative px-3 py-2 rounded-2xl"
+      className="relative px-4 py-2.5 rounded-2xl"
       style={{
-        background: 'rgba(20,20,25,0.4)',
+        background: 'rgba(20,20,25,0.5)',
         backdropFilter: 'blur(40px)',
         border: '1px solid rgba(255,255,255,0.08)',
         boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
       }}
     >
-      <div className="flex items-center gap-2 relative">
+      <div className="flex items-center gap-8 relative">
         {NAV_ITEMS.map((item) => {
           const isActive = activeNav === item.id;
-          const Icon = item.icon;
           
           return (
             <motion.button
               key={item.id}
               onClick={() => onNavChange(item.id)}
-              className="relative px-3 py-1.5 flex items-center gap-1.5 z-10"
+              className="relative py-1.5 z-10"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.97 }}
-              style={{ color: isActive ? '#fafafa' : '#71717a' }}
+              style={{ color: isActive ? '#fafafa' : '#52525b' }}
             >
-              <Icon className="w-3.5 h-3.5" />
               <span 
-                className="text-xs font-medium tracking-[0.1em] uppercase"
+                className="text-sm font-semibold tracking-[0.2em] uppercase"
                 style={{ fontFamily: 'monospace' }}
               >
                 {item.label}
@@ -125,11 +123,11 @@ function NavIsland({ activeNav, onNavChange }: { activeNav: NavItem; onNavChange
             layoutId="nav-pill"
             className="absolute inset-0 -z-0 rounded-xl"
             style={{
-              background: 'linear-gradient(135deg, rgba(244,63,94,0.35) 0%, rgba(244,63,94,0.15) 100%)',
-              border: '1px solid rgba(244,63,94,0.4)',
-              boxShadow: '0 0 25px rgba(244,63,94,0.25), inset 0 0 15px rgba(244,63,94,0.1)',
+              background: 'linear-gradient(135deg, rgba(244,63,94,0.4) 0%, rgba(244,63,94,0.2) 100%)',
+              border: '1px solid rgba(244,63,94,0.5)',
+              boxShadow: '0 0 20px rgba(244,63,94,0.3), 0 0 40px rgba(244,63,94,0.15), inset 0 0 20px rgba(244,63,94,0.1)',
             }}
-            transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
           />
         )}
       </div>
