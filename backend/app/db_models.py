@@ -164,6 +164,17 @@ class UserRepository:
                 (user_id, username, risk_score, user_type)
             )
         return user_id
+    
+    @staticmethod
+    def clear_non_seed():
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM transactions")
+            cursor.execute("DELETE FROM users WHERE username NOT IN (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                ("Aditya Sharma", "Ayush Singh", "Bipin Kumar", "Ashutosh Mishra", 
+                 "GFX Exchange Hub", "CryptoVault Services", "QuickPay Merchant", 
+                 "Global Trade Corp", "匿名钱包 Alpha", "匿名钱包 Beta")
+            )
 
 class TransactionRepository:
     @staticmethod
@@ -264,3 +275,9 @@ class TransactionRepository:
                 (limit,)
             )
             return [dict(row) for row in cursor.fetchall()]
+    
+    @staticmethod
+    def clear_all():
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM transactions")

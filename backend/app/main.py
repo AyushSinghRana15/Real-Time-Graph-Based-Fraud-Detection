@@ -209,6 +209,12 @@ def simulate_attack():
     return result
 
 
+@app.post("/api/graph/reset")
+def reset_graph():
+    result = ml_service.reset_graph()
+    return result
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=3001)

@@ -66,3 +66,40 @@ export async function simulateAttack() {
     description: string;
   }>(response);
 }
+
+export async function resetGraph() {
+  const response = await fetch(`${API_BASE}/graph/reset`, {
+    method: 'POST',
+  });
+  return handleResponse<{
+    status: string;
+    message: string;
+  }>(response);
+}
+
+export async function addTransaction(transaction: {
+  sender_id: string;
+  receiver_id: string;
+  amount: number;
+  type: string;
+  oldbalanceOrg: number;
+  newbalanceOrig: number;
+  oldbalanceDest: number;
+  newbalanceDest: number;
+}) {
+  const response = await fetch(`${API_BASE}/predict`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(transaction),
+  });
+  return handleResponse<{
+    is_fraud: boolean;
+    fraud_probability: number;
+    transaction: {
+      sender: string;
+      receiver: string;
+      sender_name: string;
+      receiver_name: string;
+    };
+  }>(response);
+}

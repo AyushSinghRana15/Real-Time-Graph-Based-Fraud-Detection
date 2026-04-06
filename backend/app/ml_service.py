@@ -529,5 +529,26 @@ class MLService:
             "description": f"Simulated {pattern.replace('_', ' ')} attack ring with {num_nodes} nodes"
         }
 
+    def reset_graph(self) -> dict:
+        from .db_models import TransactionRepository, UserRepository
+        
+        self.graph = nx.DiGraph()
+        self.node_risk_scores = {}
+        self.username_map = {}
+        
+        try:
+            TransactionRepository.clear_all()
+            UserRepository.clear_non_seed()
+        except Exception as e:
+            print(f"Error clearing database: {e}")
+        
+        seed_database()
+        self._initialize_graph_from_db()
+        
+        return {
+            "status": "success",
+            "message": "Graph reset successfully"
+        }
+
 
 ml_service = MLService()

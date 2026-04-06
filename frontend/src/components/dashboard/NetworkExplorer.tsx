@@ -1,6 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import { Activity, Info, ChevronLeft, ChevronRight, GitBranch, Network, Zap } from 'lucide-react';
+import { Activity, Info, ChevronLeft, ChevronRight, GitBranch, Network, Zap, RefreshCw, ArrowRight, AlertTriangle, Trash2 } from 'lucide-react';
+import { resetGraph } from '../../api/fraudApi';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface GraphStats {
   total_nodes: number;
@@ -48,6 +50,17 @@ export function NetworkExplorer({ isActive, stats, riskThresholds, onClose }: Ne
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [analytics, setAnalytics] = useState<GraphAnalytics | null>(null);
   const [autoRotate, setAutoRotate] = useState(true);
+  const [isResetting, setIsResetting] = useState(false);
+  const [transactions, setTransactions] = useState<Array<{
+    id: string;
+    sender_id: string;
+    receiver_id: string;
+    amount: number;
+    transaction_type: string;
+    is_flagged: number;
+    timestamp: string;
+  }>>([]);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!isActive) return;
@@ -62,10 +75,41 @@ export function NetworkExplorer({ isActive, stats, riskThresholds, onClose }: Ne
         // Backend not reachable
       }
     };
+    const fetchTransactions = async () => {
+      try {
+        const res = await fetch('http://localhost:3001/api/transactions');
+        if (res.ok) {
+          const data = await res.json();
+          setTransactions(data.slice(0, 20));
+        }
+      } catch {
+        // Backend not reachable
+      }
+    };
     fetchAnalytics();
-    const interval = setInterval(fetchAnalytics, 5000);
+    fetchTransactions();
+    const interval = setInterval(() => {
+      fetchAnalytics();
+      fetchTransactions();
+    }, 5000);
     return () => clearInterval(interval);
   }, [isActive]);
+
+  const handleResetGraph = async () => {
+    if (!confirm('Are you sure you want to reset the graph? This will clear all transactions and non-seed nodes.')) return;
+    setIsResetting(true);
+    try {
+      await resetGraph();
+      queryClient.invalidateQueries({ queryKey: ['nodes'] });
+      queryClient.invalidateQueries({ queryKey: ['graphState'] });
+      setAnalytics(null);
+      setTransactions([]);
+    } catch (error) {
+      console.error('Reset failed:', error);
+    } finally {
+      setIsResetting(false);
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -118,17 +162,31 @@ export function NetworkExplorer({ isActive, stats, riskThresholds, onClose }: Ne
                       <Activity className="w-5 h-5 text-indigo-400" />
                       <h2 className="text-base font-bold text-zinc-200" style={{ letterSpacing: '0.1em' }}>GRAPH ANALYTICS</h2>
                     </div>
-                    <button
-                      onClick={() => setAutoRotate(!autoRotate)}
-                      className="px-2 py-1 rounded text-[10px] font-medium"
-                      style={{
-                        background: autoRotate ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.05)',
-                        border: `1px solid ${autoRotate ? 'rgba(99,102,241,0.3)' : 'rgba(255,255,255,0.1)'}`,
-                        color: autoRotate ? '#818cf8' : '#71717a'
-                      }}
-                    >
-                      {autoRotate ? 'ORBIT ON' : 'ORBIT OFF'}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleResetGraph}
+                        disabled={isResetting}
+                        className="px-2 py-1 rounded text-[10px] font-medium disabled:opacity-50"
+                        style={{
+                          background: 'rgba(239,68,68,0.15)',
+                          border: '1px solid rgba(239,68,68,0.3)',
+                          color: '#fca5a5'
+                        }}
+                      >
+                        {isResetting ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                      </button>
+                      <button
+                        onClick={() => setAutoRotate(!autoRotate)}
+                        className="px-2 py-1 rounded text-[10px] font-medium"
+                        style={{
+                          background: autoRotate ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.05)',
+                          border: `1px solid ${autoRotate ? 'rgba(99,102,241,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                          color: autoRotate ? '#818cf8' : '#71717a'
+                        }}
+                      >
+                        {autoRotate ? 'ORBIT ON' : 'ORBIT OFF'}
+                      </button>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
@@ -235,6 +293,47 @@ export function NetworkExplorer({ isActive, stats, riskThresholds, onClose }: Ne
                           </div>
                           <p className="text-[9px] uppercase text-zinc-500">Density</p>
                         </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {transactions.length > 0 && (
+                    <div className="space-y-2 pt-2">
+                      <div className="flex items-center gap-2 mb-2">
+                        <ArrowRight className="w-4 h-4 text-cyan-400" />
+                        <h3 className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">Transaction Flow</h3>
+                      </div>
+                      <div className="space-y-1 max-h-48 overflow-y-auto">
+                        {transactions.slice(0, 10).map((tx, i) => (
+                          <motion.div
+                            key={tx.id || i}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.05 }}
+                            className="p-2 rounded-lg"
+                            style={{ 
+                              background: tx.is_flagged ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.02)',
+                              border: tx.is_flagged ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(255,255,255,0.04)'
+                            }}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-1">
+                                {tx.is_flagged ? (
+                                  <AlertTriangle className="w-3 h-3 text-red-400" />
+                                ) : (
+                                  <ArrowRight className="w-3 h-3 text-cyan-400" />
+                                )}
+                                <span className="text-[10px] text-zinc-500">{tx.transaction_type}</span>
+                              </div>
+                              <span className="text-[10px] font-mono" style={{ color: tx.is_flagged ? '#fca5a5' : '#22c55e' }}>
+                                ${tx.amount.toLocaleString()}
+                              </span>
+                            </div>
+                            <p className="text-[9px] text-zinc-500 truncate font-mono">
+                              {tx.sender_id.slice(0, 8)}... → {tx.receiver_id.slice(0, 8)}...
+                            </p>
+                          </motion.div>
+                        ))}
                       </div>
                     </div>
                   )}

@@ -12,13 +12,19 @@ interface GraphCanvasProps {
   onNodeClick: (n: TransactionNode) => void;
   autoRotate?: boolean;
   showControls?: boolean;
+  cycleNodes?: string[];
 }
 
-export function GraphCanvas({ entityId: _entityId, onNodeClick, autoRotate = false }: GraphCanvasProps) {
+export function GraphCanvas({ entityId: _entityId, onNodeClick, autoRotate = false, cycleNodes = [] }: GraphCanvasProps) {
   const graphRef = useRef<any>(null);
   const [dims, setDims] = useState({ w: window.innerWidth, h: window.innerHeight });
   const [isInitialized, setIsInitialized] = useState(false);
   const { graphData, isLoading } = useRealTimeGraph(true, 5000);
+  const cycleNodeSet = useRef(new Set(cycleNodes));
+
+  useEffect(() => {
+    cycleNodeSet.current = new Set(cycleNodes);
+  }, [cycleNodes]);
 
   useEffect(() => {
     if (graphData.nodes.length > 0) {
@@ -49,47 +55,43 @@ export function GraphCanvas({ entityId: _entityId, onNodeClick, autoRotate = fal
     }
   }, [autoRotate, isInitialized]);
 
-  useEffect(() => {
-    if (graphData.nodes.length > 0) {
-      setIsInitialized(true);
-    }
-  }, [graphData.nodes.length]);
-
-  useEffect(() => {
-    const handleResize = () => setDims({ w: window.innerWidth, h: window.innerHeight });
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  useEffect(() => {
-    if (graphRef.current && isInitialized) {
-      graphRef.current.d3Force('charge')?.strength(-150);
-      graphRef.current.d3Force('link')?.distance(80);
-    }
-  }, [isInitialized]);
-
   const nodeObj = useCallback((node: any) => {
     const score = node.riskScore ?? node.risk / 100;
-    const color = riskColor(score);
+    const isInCycle = cycleNodeSet.current.has(node.id);
+    const baseColor = isInCycle ? '#ef4444' : riskColor(score);
     const g = new THREE.Group();
     
-    const isHighRisk = score >= 0.6;
+    const isHighRisk = score >= 0.6 || isInCycle;
     const mesh = new THREE.Mesh(
-      new THREE.SphereGeometry(isHighRisk ? 5 : 3, 16, 16),
+      new THREE.SphereGeometry(isInCycle ? 5.5 : (isHighRisk ? 5 : 3), 16, 16),
       new THREE.MeshPhongMaterial({ 
-        color, 
+        color: baseColor, 
         transparent: true, 
-        opacity: 0.9, 
-        emissive: color, 
-        emissiveIntensity: isHighRisk ? 0.6 : 0.2 
+        opacity: 0.95, 
+        emissive: baseColor, 
+        emissiveIntensity: isInCycle ? 0.8 : (isHighRisk ? 0.6 : 0.2) 
       }),
     );
     g.add(mesh);
 
-    if (isHighRisk) {
+    if (isInCycle) {
+      const outerRing = new THREE.Mesh(
+        new THREE.RingGeometry(7, 8.5, 32),
+        new THREE.MeshBasicMaterial({ color: '#ef4444', transparent: true, opacity: 0.4, side: THREE.DoubleSide }),
+      );
+      outerRing.rotation.x = Math.PI / 2;
+      g.add(outerRing);
+
+      const innerRing = new THREE.Mesh(
+        new THREE.RingGeometry(9, 10, 32),
+        new THREE.MeshBasicMaterial({ color: '#fca5a5', transparent: true, opacity: 0.2, side: THREE.DoubleSide }),
+      );
+      innerRing.rotation.x = Math.PI / 2;
+      g.add(innerRing);
+    } else if (isHighRisk) {
       const ring = new THREE.Mesh(
         new THREE.RingGeometry(8, 9, 32),
-        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.3, side: THREE.DoubleSide }),
+        new THREE.MeshBasicMaterial({ color: baseColor, transparent: true, opacity: 0.3, side: THREE.DoubleSide }),
       );
       ring.rotation.x = Math.PI / 2;
       g.add(ring);
@@ -103,11 +105,33 @@ export function GraphCanvas({ entityId: _entityId, onNodeClick, autoRotate = fal
     const validLinks = graphData.links.filter(
       l => nodeIds.has(l.source) && nodeIds.has(l.target)
     );
+    
+    const cycleEdges = new Set<string>();
+    validLinks.forEach(l => {
+      if (cycleNodeSet.current.has(l.source) && cycleNodeSet.current.has(l.target)) {
+        cycleEdges.add(`${l.source}-${l.target}`);
+      }
+    });
+
     return {
       nodes: graphData.nodes.map(n => ({ ...n, riskScore: n.risk / 100 })),
-      links: validLinks.map(l => ({ source: l.source, target: l.target })),
+      links: validLinks.map(l => ({ 
+        source: l.source, 
+        target: l.target,
+        isCycle: cycleEdges.has(`${l.source}-${l.target}`)
+      })),
     };
   })();
+
+  const linkColor = useCallback((link: any) => {
+    if (link.isCycle) return 'rgba(239, 68, 68, 0.6)';
+    return 'rgba(255,255,255,0.1)';
+  }, []);
+
+  const linkWidth = useCallback((link: any) => {
+    if (link.isCycle) return 2;
+    return 1;
+  }, []);
 
   const hasData = transformedData.nodes.length > 0;
 
@@ -121,8 +145,8 @@ export function GraphCanvas({ entityId: _entityId, onNodeClick, autoRotate = fal
           nodeLabel="label"
           nodeThreeObject={nodeObj}
           nodeThreeObjectExtend={false}
-          linkWidth={1}
-          linkColor={() => 'rgba(255,255,255,0.1)'}
+          linkWidth={linkWidth}
+          linkColor={linkColor}
           linkDirectionalParticles={2}
           linkDirectionalParticleWidth={1.5}
           linkDirectionalParticleColor={() => '#f59e0b'}
