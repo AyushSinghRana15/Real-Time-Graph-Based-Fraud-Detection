@@ -8,7 +8,7 @@ OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 print(f"OpenRouter API Key loaded: {OPENROUTER_API_KEY[:20]}..." if OPENROUTER_API_KEY else "No API key found")
 
-LLM_MODEL = "qwen/qwen3-next-80b-a3b-instruct:free"
+LLM_MODEL = "openrouter/auto"
 
 SYSTEM_PROMPT = """You are a Senior Financial Forensic Analyst with 20 years of experience in anti-money laundering (AML) and fraud detection. You provide clear, actionable intelligence for compliance teams.
 
