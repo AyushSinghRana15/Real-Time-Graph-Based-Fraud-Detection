@@ -389,17 +389,6 @@ export function FocusSandbox({ isActive, onClose, defaultAlert }: FocusSandboxPr
       setActiveTab('chat');
       setIsProcessing(true);
 
-      const adviceResponse = await fetch('/api/advice', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          transaction: formData,
-          ml_result: data,
-        }),
-      });
-
-      const adviceData = await adviceResponse.json();
-
       const userMessage: Message = {
         id: Date.now().toString(),
         role: 'user',
@@ -407,21 +396,42 @@ export function FocusSandbox({ isActive, onClose, defaultAlert }: FocusSandboxPr
         timestamp: new Date(),
         hasContext: true,
       };
+      setMessages(prev => [...prev, userMessage]);
 
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: adviceData.advice || 'Analysis complete.',
-        timestamp: new Date(),
-        hasContext: true,
-      };
-
-      setMessages(prev => [...prev, userMessage, assistantMessage]);
+      fetch('/api/advice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transaction: formData,
+          ml_result: data,
+        }),
+      })
+      .then(res => res.json())
+      .then(adviceData => {
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: adviceData.advice || 'Analysis complete.',
+          timestamp: new Date(),
+          hasContext: true,
+        };
+        setMessages(prev => [...prev, assistantMessage]);
+      })
+      .catch(err => {
+        console.error('Advice failed:', err);
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: 'AI analysis unavailable. ML prediction is ready.',
+          timestamp: new Date(),
+          hasContext: true,
+        };
+        setMessages(prev => [...prev, assistantMessage]);
+      });
     } catch (error) {
       console.error('Prediction failed:', error);
     } finally {
       setIsAnalyzing(false);
-      setIsProcessing(false);
     }
   };
 

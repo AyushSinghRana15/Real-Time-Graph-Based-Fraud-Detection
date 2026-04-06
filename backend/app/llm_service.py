@@ -8,7 +8,15 @@ OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 print(f"OpenRouter API Key loaded: {OPENROUTER_API_KEY[:20]}..." if OPENROUTER_API_KEY else "No API key found")
 
-LLM_MODEL = "qwen/qwen3-next-80b-a3b-instruct:free"
+FREE_MODELS = [
+    "qwen/qwen3-32b-a3b-instruct:free",
+    "deepseek/deepseek-r1-0528:free", 
+    "nvidia/llama-3.1-nemotron-70b-instruct:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "google/gemini-2.5-pro-exp-03-25:free",
+]
+
+LLM_MODEL = FREE_MODELS[0]
 
 SYSTEM_PROMPT = """You are a Senior Financial Forensic Analyst with 20 years of experience in anti-money laundering (AML) and fraud detection. You provide clear, actionable intelligence for compliance teams.
 
@@ -31,36 +39,34 @@ def generate_advice(transaction_data: dict, ml_result: dict) -> str:
         print("No valid OpenRouter API key found, using mock advice")
         return generate_mock_advice(transaction_data, ml_result)
     
-    try:
-        from openai import OpenAI
-        
-        client = OpenAI(
-            api_key=OPENROUTER_API_KEY,
-            base_url=OPENROUTER_BASE_URL,
-            default_headers={
-                "HTTP-Referer": "http://localhost:3001",
-                "X-Title": "Forensic Lens",
-            }
-        )
-        
-        if not OPENROUTER_API_KEY.strip():
-            return generate_mock_advice(transaction_data, ml_result)
-        
-        sender = transaction_data.get("sender_id", "Unknown")
-        receiver = transaction_data.get("receiver_id", "Unknown")
-        amount = transaction_data.get("amount", 0)
-        trans_type = transaction_data.get("type", "Unknown")
-        
-        risk_score = ml_result.get("fraud_probability", 0)
-        is_fraud = ml_result.get("is_fraud", False)
-        risk_level = ml_result.get("risk_level", "unknown")
-        graph_metrics = ml_result.get("graph_metrics", {})
-        
-        cycle_detected = graph_metrics.get("cycle_detected", False)
-        degree_boost = graph_metrics.get("degree_boost", 0)
-        clustering_boost = graph_metrics.get("clustering_boost", 0)
-        
-        user_prompt = f"""Analyze this financial transaction for potential fraud:
+    for model in FREE_MODELS:
+        try:
+            from openai import OpenAI
+            
+            client = OpenAI(
+                api_key=OPENROUTER_API_KEY,
+                base_url=OPENROUTER_BASE_URL,
+                default_headers={
+                    "HTTP-Referer": "http://localhost:3001",
+                    "X-Title": "Forensic Lens",
+                }
+            )
+            
+            sender = transaction_data.get("sender_id", "Unknown")
+            receiver = transaction_data.get("receiver_id", "Unknown")
+            amount = transaction_data.get("amount", 0)
+            trans_type = transaction_data.get("type", "Unknown")
+            
+            risk_score = ml_result.get("fraud_probability", 0)
+            is_fraud = ml_result.get("is_fraud", False)
+            risk_level = ml_result.get("risk_level", "unknown")
+            graph_metrics = ml_result.get("graph_metrics", {})
+            
+            cycle_detected = graph_metrics.get("cycle_detected", False)
+            degree_boost = graph_metrics.get("degree_boost", 0)
+            clustering_boost = graph_metrics.get("clustering_boost", 0)
+            
+            user_prompt = f"""Analyze this financial transaction for potential fraud:
 
 **Transaction Details:**
 - Sender: {sender}
@@ -80,27 +86,32 @@ def generate_advice(transaction_data: dict, ml_result: dict) -> str:
 
 Provide your forensic analysis following the standard format."""
 
-        response = client.chat.completions.create(
-            model=LLM_MODEL,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt}
-            ],
-            max_tokens=500,
-            temperature=0.3,
-        )
-        
-        return response.choices[0].message.content
-        
-    except Exception as e:
-        error_str = str(e)
-        if "429" in error_str or "rate limit" in error_str.lower():
-            print(f"OpenRouter rate limited, using mock advice: {error_str}")
-        elif "401" in error_str or "user not found" in error_str or "invalid" in error_str.lower():
-            print(f"OpenRouter API key invalid or expired: {error_str}")
-        else:
-            print(f"OpenRouter API error: {error_str}")
-        return generate_mock_advice(transaction_data, ml_result)
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_prompt}
+                ],
+                max_tokens=500,
+                temperature=0.3,
+            )
+            
+            return response.choices[0].message.content
+            
+        except Exception as e:
+            error_str = str(e)
+            if "429" in error_str or "rate limit" in error_str.lower():
+                print(f"Rate limited with {model}, trying next model...")
+                continue
+            elif "401" in error_str or "user not found" in error_str or "invalid" in error_str.lower():
+                print(f"API key issue with {model}: {error_str}")
+                break
+            else:
+                print(f"Error with {model}: {error_str}")
+                continue
+    
+    print("All free models failed, using mock advice")
+    return generate_mock_advice(transaction_data, ml_result)
 
 
 def generate_mock_advice(transaction_data: dict, ml_result: dict) -> str:
