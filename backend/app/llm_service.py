@@ -10,10 +10,10 @@ print(f"OpenRouter API Key loaded: {OPENROUTER_API_KEY[:20]}..." if OPENROUTER_A
 
 FREE_MODELS = [
     "qwen/qwen3-32b-a3b-instruct:free",
-    "deepseek/deepseek-r1-0528:free", 
-    "nvidia/llama-3.1-nemotron-70b-instruct:free",
-    "meta-llama/llama-3.3-70b-instruct:free",
-    "google/gemini-2.5-pro-exp-03-25:free",
+    "deepseek/deepseek-r1-0528:free",
+    "meta-llama/llama-3.1-8b-instruct:free",
+    "mistralai/mistral-7b-instruct:free",
+    "google/gemma-2-9b-it:free",
 ]
 
 LLM_MODEL = FREE_MODELS[0]
