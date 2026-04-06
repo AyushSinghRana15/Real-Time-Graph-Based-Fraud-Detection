@@ -81,8 +81,7 @@ Provide your forensic analysis following the standard format."""
         response = client.chat.completions.create(
             model="google/gemma-3-4b-it:free",
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt}
+                {"role": "user", "content": f"{SYSTEM_PROMPT}\n\n{user_prompt}"}
             ],
             max_tokens=500,
             temperature=0.3,
