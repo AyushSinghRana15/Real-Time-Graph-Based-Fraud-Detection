@@ -69,7 +69,7 @@ Full-screen workspace with:
 ### Hybrid Intelligence
 - **XGBoost ML** - Pre-trained fraud detection model with 16 features
 - **Graph Analysis** - NetworkX for cycle detection, clustering, degree centrality
-- **LLM Forensics** - OpenRouter Gemma 3B for investigation reports
+- **LLM Forensics** - OpenRouter Qwen 3 for investigation reports
 - **Risk Propagation** - Graph-based risk spreading across network
 
 ### Persistence
@@ -85,7 +85,7 @@ Full-screen workspace with:
 | Backend | FastAPI, Python 3.10+ |
 | ML | XGBoost, scikit-learn |
 | Graph | NetworkX (cycle detection, clustering, pagerank) |
-| LLM | OpenRouter API (Gemma 3B, free tier) |
+| LLM | OpenRouter API (Qwen 3, free tier) |
 | Database | SQLite with aiosqlite |
 | Data | CoinGecko API (live crypto data) |
 
@@ -172,6 +172,58 @@ Place trained model files in `Model/`:
 ```bash
 # backend/.env
 OPENROUTER_API_KEY=sk-or-v1-...    # Required for LLM features
+```
+
+## Deployment
+
+### Railway (Recommended)
+
+1. **Create Railway Account**: Go to [railway.app](https://railway.app) and sign up
+
+2. **Deploy Backend**:
+   ```bash
+   railway login
+   railway init
+   railway add
+   # Select "Backend (Python)"
+   ```
+
+3. **Set Environment Variables**:
+   - Add `OPENROUTER_API_KEY` with your key from [OpenRouter](https://openrouter.ai)
+
+4. **Deploy**:
+   ```bash
+   railway up
+   ```
+
+5. **Custom Domain** (optional):
+   - Go to Railway dashboard → Settings → Networking
+   - Add custom domain
+
+### Docker
+
+```bash
+# Build image
+docker build -t forensic-lens .
+
+# Run container
+docker run -p 8000:8000 \
+  -e OPENROUTER_API_KEY=sk-or-v1-your-key \
+  forensic-lens
+```
+
+### Manual Production Build
+
+```bash
+# Build frontend
+cd frontend
+npm install
+npm run build
+
+# Backend serves the built frontend automatically
+cd ../backend
+pip install -r requirements.txt
+uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 ## Navigation

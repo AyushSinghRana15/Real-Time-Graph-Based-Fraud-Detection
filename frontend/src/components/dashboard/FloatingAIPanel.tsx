@@ -63,7 +63,7 @@ export function FloatingAIPanel({ isSandboxMode = false }: FloatingAIPanelProps)
     setActiveTab('ml');
     
     try {
-      const response = await fetch('http://localhost:3001/api/predict', {
+      const response = await fetch('/api/predict', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -83,7 +83,7 @@ export function FloatingAIPanel({ isSandboxMode = false }: FloatingAIPanelProps)
     
     setIsLoadingAdvice(true);
     try {
-      const response = await fetch('http://localhost:3001/api/advice', {
+      const response = await fetch('/api/advice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

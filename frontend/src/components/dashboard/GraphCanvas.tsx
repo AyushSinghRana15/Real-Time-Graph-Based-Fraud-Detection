@@ -28,7 +28,7 @@ export function GraphCanvas({ entityId: _entityId, onNodeClick, autoRotate = fal
   useEffect(() => {
     const fetchGraph = async () => {
       try {
-        const res = await fetch('http://localhost:3001/api/graph/state');
+        const res = await fetch('/api/graph/state');
         const data = await res.json();
         setGraphData({
           nodes: data.nodes.map((n: any) => ({ ...n, riskScore: n.risk / 100 })),

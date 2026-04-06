@@ -9,7 +9,7 @@ function LiveIndicator() {
   const { isLoading, isError } = useQuery({
     queryKey: ['health'],
     queryFn: async () => {
-      const res = await fetch('http://localhost:3001/health');
+      const res = await fetch('/health');
       if (!res.ok) throw new Error('API error');
       return res.json();
     },

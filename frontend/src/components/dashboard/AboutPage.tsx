@@ -161,7 +161,7 @@ export function AboutPage({ isActive, onClose }: AboutPageProps) {
     if (!isActive) return;
     const fetchHealth = async () => {
       try {
-        const res = await fetch('http://localhost:3001/health');
+        const res = await fetch('/health');
         const data = await res.json();
         setSystemHealth({
           db_nodes: data.graph_nodes || 0,

@@ -1,7 +1,10 @@
 from contextlib import asynccontextmanager
 import asyncio
+import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Literal, Optional, Any
 from datetime import datetime
@@ -13,6 +16,8 @@ from .crypto_service import crypto_service
 
 alerts_cache = []
 transactions_cache = []
+
+FRONTEND_BUILD_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")
 
 
 @asynccontextmanager
@@ -60,6 +65,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Serve frontend in production
+@app.get("/")
+async def serve_frontend():
+    index_path = os.path.join(FRONTEND_BUILD_PATH, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return {"message": "Frontend not built. Run 'cd frontend && npm run build' first."}
+
+# Mount static files
+if os.path.exists(FRONTEND_BUILD_PATH):
+    app.mount("/assets", StaticFiles(directory=os.path.join(FRONTEND_BUILD_PATH, "assets")), name="assets")
 
 
 class TransactionPredict(BaseModel):

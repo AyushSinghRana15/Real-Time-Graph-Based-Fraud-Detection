@@ -128,7 +128,7 @@ export function NetworkPage({ onClose }: { onClose: () => void }) {
 
   const fetchGraph = useCallback(async () => {
     try {
-      const res = await fetch('http://localhost:3001/api/graph/state');
+      const res = await fetch('/api/graph/state');
       const data = await res.json();
       
       if (data.nodes && data.nodes.length > 0) {
@@ -188,7 +188,7 @@ export function NetworkPage({ onClose }: { onClose: () => void }) {
     setShowResult(false);
 
     try {
-      const response = await fetch('http://localhost:3001/api/predict', {
+      const response = await fetch('/api/predict', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -222,7 +222,7 @@ export function NetworkPage({ onClose }: { onClose: () => void }) {
     if (!confirm('Reset graph? This will clear all transactions.')) return;
     setIsResetting(true);
     try {
-      await fetch('http://localhost:3001/api/graph/reset', { method: 'POST' });
+      await fetch('/api/graph/reset', { method: 'POST' });
       setPrediction(null);
       setShowResult(false);
       setCurrentEdges([]);
