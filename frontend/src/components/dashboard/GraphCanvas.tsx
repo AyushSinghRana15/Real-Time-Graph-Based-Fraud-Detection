@@ -14,7 +14,7 @@ interface GraphCanvasProps {
   showControls?: boolean;
 }
 
-export function GraphCanvas({ entityId: _entityId, onNodeClick, autoRotate = false, showControls = true }: GraphCanvasProps) {
+export function GraphCanvas({ entityId: _entityId, onNodeClick, autoRotate = false }: GraphCanvasProps) {
   const graphRef = useRef<any>(null);
   const [dims, setDims] = useState({ w: window.innerWidth, h: window.innerHeight });
   const [isInitialized, setIsInitialized] = useState(false);

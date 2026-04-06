@@ -30,11 +30,12 @@ export function DashboardPage({ onLogout }: { onLogout: () => void }) {
   const { graphData } = useRealTimeGraph(true, 5000);
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
   const [activeNav, setActiveNav] = useState<NavItem>('Dashboard');
+  
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isContextCollapsed, setIsContextCollapsed] = useState(true);
-  const [autoRotate, setAutoRotate] = useState(true);
+  const [autoRotate] = useState(true);
 
   const isSandboxMode = activeNav === 'Sandbox';
   const isNetworkMode = activeNav === 'Network';
@@ -77,7 +78,6 @@ export function DashboardPage({ onLogout }: { onLogout: () => void }) {
             entityId={selectedAlert?.entityId ?? null} 
             onNodeClick={handleNodeClick}
             autoRotate={isNetworkMode && autoRotate}
-            showControls={!isNetworkMode}
           />
         </ErrorBoundary>
       </div>

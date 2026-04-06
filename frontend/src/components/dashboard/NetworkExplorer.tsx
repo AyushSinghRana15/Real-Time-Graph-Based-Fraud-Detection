@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Globe, AlertTriangle, TrendingUp, Activity, Circle, Info } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { AlertTriangle, TrendingUp, Activity, Info } from 'lucide-react';
+import { useState } from 'react';
 
 interface GraphStats {
   total_nodes: number;

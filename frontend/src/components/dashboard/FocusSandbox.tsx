@@ -62,7 +62,12 @@ function SmartScroller({
       <div className="flex items-center gap-2">
         <label className="text-xs font-medium text-zinc-400">{label}</label>
         {tooltip && (
-          <HelpCircle className="w-3 h-3 text-zinc-600" title={tooltip} />
+          <div className="relative group">
+            <HelpCircle className="w-3 h-3 text-zinc-600 cursor-help" />
+            <div className="absolute left-0 bottom-full mb-1 px-2 py-1 text-[10px] rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" style={{ background: 'rgba(0,0,0,0.9)', color: '#a1a1aa' }}>
+              {tooltip}
+            </div>
+          </div>
         )}
       </div>
       <div className="relative">
@@ -208,7 +213,7 @@ interface TextInputProps {
 }
 
 function ForensicInput({ value, onChange, label, tooltip, suggestions = [], isAlert = false }: TextInputProps) {
-  const [isFocused, setIsFocused] = useState(false);
+  const [_isFocused, setIsFocused] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const filtered = suggestions.filter(s => s.toLowerCase().includes(value.toLowerCase()) && s !== value);
   
@@ -217,7 +222,12 @@ function ForensicInput({ value, onChange, label, tooltip, suggestions = [], isAl
       <div className="flex items-center gap-2">
         <label className="text-xs font-medium text-zinc-400">{label}</label>
         {tooltip && (
-          <HelpCircle className="w-3 h-3 text-zinc-600" title={tooltip} />
+          <div className="relative group">
+            <HelpCircle className="w-3 h-3 text-zinc-600 cursor-help" />
+            <div className="absolute left-0 bottom-full mb-1 px-2 py-1 text-[10px] rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" style={{ background: 'rgba(0,0,0,0.9)', color: '#a1a1aa' }}>
+              {tooltip}
+            </div>
+          </div>
         )}
       </div>
       <input
@@ -490,7 +500,6 @@ export function FocusSandbox({ isActive, onClose, defaultAlert }: FocusSandboxPr
   const riskColorValue = prediction ? riskColor(prediction.fraud_probability / 100) : '#8b5cf6';
   const hasPrediction = prediction !== null;
   const amountRisk = formData.amount > 100000;
-  const balanceAlert = formData.amount > formData.oldbalanceOrg;
   const btnGlow = amountRisk ? getAmountColor(formData.amount) : '#8b5cf6';
 
   return (
