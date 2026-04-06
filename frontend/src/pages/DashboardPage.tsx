@@ -12,6 +12,7 @@ import { UserProfileOverlay } from '../components/dashboard/UserProfileOverlay';
 import { ToastContainer } from '../components/ToastContainer';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { NetworkExplorer } from '../components/dashboard/NetworkExplorer';
+import { AboutPage } from '../components/dashboard/AboutPage';
 import { useRealTimeGraph } from '../hooks/useRealTime';
 
 type NavItem = typeof NAV_ITEMS[number];
@@ -37,6 +38,7 @@ export function DashboardPage({ onLogout }: { onLogout: () => void }) {
 
   const isSandboxMode = activeNav === 'Sandbox';
   const isNetworkMode = activeNav === 'Network';
+  const isAboutMode = activeNav === 'About';
   const highRiskCount = alerts.filter(a => a.type === 'high_risk').length;
 
   const graphStats = {
@@ -121,6 +123,11 @@ export function DashboardPage({ onLogout }: { onLogout: () => void }) {
         isActive={isSandboxMode} 
         onClose={() => setActiveNav('Dashboard')}
         defaultAlert={selectedAlert ? { entityId: selectedAlert.entityId, entityName: selectedAlert.entityName, amount: selectedAlert.amount } : null}
+      />
+
+      <AboutPage
+        isActive={isAboutMode}
+        onClose={() => setActiveNav('Dashboard')}
       />
 
       <SettingsOverlay isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />

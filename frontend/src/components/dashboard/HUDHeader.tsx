@@ -3,7 +3,7 @@ import { Bell, Settings, User, Activity } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 
-export const NAV_ITEMS = ['Dashboard', 'Network', 'Sandbox', 'Archived'] as const;
+export const NAV_ITEMS = ['Dashboard', 'Network', 'Sandbox', 'About'] as const;
 export type NavItem = typeof NAV_ITEMS[number];
 
 interface HUDHeaderProps {

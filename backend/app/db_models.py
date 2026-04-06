@@ -224,7 +224,8 @@ class TransactionRepository:
                 "SELECT risk_score FROM users WHERE id = ?",
                 (sender_id,)
             )
-            current_risk = cursor.fetchone()[0] if cursor.fetchone() else 50
+            result = cursor.fetchone()
+            current_risk = result[0] if result else 50
             
             if is_flagged and fraud_probability:
                 new_risk = min(100, current_risk + (fraud_probability * 0.3))
